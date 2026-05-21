@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa de Doenças do Milho</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #2d6a4f;
+    --green-light: #52b788;
+    --green-pale: #d8f3dc;
+    --gold: #e9c46a;
+    --dark: #1a1a2e;
+    --gray: #6b7280;
+    --white: #ffffff;
+    --radius: 10px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #f0f4f0; color: var(--dark); height: 100vh; display: flex; flex-direction: column; }
+
+  /* HEADER */
+  header {
+    background: var(--green);
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+  }
+  .brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.05rem; line-height: 1.2; }
+  .brand span { display: block; font-size: 0.7rem; font-weight: 400; opacity: 0.75; font-family: 'DM Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  #total-badge {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+  }
+  .btn-registrar {
+    background: var(--gold);
+    color: var(--dark);
+    border: none;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn-registrar:hover { background: #d4a843; }
+
+  /* LAYOUT */
+  .container { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+    z-index: 100;
+  }
+
+  .sidebar-header {
+    padding: 14px 16px;
+    background: #f8faf8;
+    border-bottom: 1px solid #e8ede8;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--green);
+  }
+
+  .filters { padding: 14px 16px; border-bottom: 1px solid #e8ede8; display: flex; flex-direction: column; gap: 10px; }
+
+  select.filter-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 7px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--dark);
+    background: white;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+  }
+  select.filter-select:focus { outline: none; border-color: var(--green-light); }
+
+  .btn-clear {
+    width: 100%;
+    padding: 7px;
+    background: #f3f4f6;
+    border: 1px solid #e0e0e0;
+    border-radius: 7px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    color: var(--gray);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-clear:hover { background: #e5e7eb; }
+
+  /* LISTA */
+  #lista { flex: 1; overflow-y: auto; }
+
+  .ocorrencia-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .ocorrencia-item:hover { background: #f8faf8; }
+  .ocorrencia-item.active { background: var(--green-pale); border-left: 3px solid var(--green); }
+
+  .oc-doenca {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--green);
+    line-height: 1.3;
+    margin-bottom: 3px;
+  }
+  .oc-local {
+    font-size: 0.78rem;
+    color: var(--gray);
+    font-family: 'DM Mono', monospace;
+  }
+  .oc-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+  }
+  .tag-inc { background: #fef3c7; color: #92400e; }
+  .tag-sev { background: #fee2e2; color: #991b1b; }
+  .tag-est { background: #e0f2fe; color: #0369a1; }
+  .tag-safra { background: var(--green-pale); color: var(--green); }
+
+  #lista-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--gray);
+    font-size: 0.85rem;
+    display: none;
+  }
+  #loading-spinner {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--gray);
+    font-size: 0.85rem;
+  }
+
+  /* MAPA */
+  #map { flex: 1; z-index: 1; }
+
+  /* POPUP */
+  .popup-doenca { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; color: var(--green); margin-bottom: 6px; line-height: 1.3; }
+  .popup-row { font-size: 0.78rem; color: #444; margin-bottom: 3px; }
+  .popup-row strong { color: var(--dark); }
+  .popup-foto { width: 100%; border-radius: 6px; margin-top: 8px; max-height: 120px; object-fit: cover; }
+
+  /* LEGENDA */
+  .leaflet-legend {
+    background: white;
+    border-radius: 8px;
+    padding: 10px 14px;
+    box-shadow: var(--shadow);
+    font-size: 0.75rem;
+    font-family: 'DM Sans', sans-serif;
+    max-width: 200px;
+  }
+  .leaflet-legend h4 { font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 700; margin-bottom: 8px; color: var(--green); text-transform: uppercase; letter-spacing: 0.5px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; line-height: 1.2; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.2); }
+
+  /* STATS BAR */
+  #stats-bar {
+    position: absolute;
+    bottom: 20px;
+    left: 320px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 500;
+    pointer-events: none;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 8px 14px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    min-width: 80px;
+    pointer-events: auto;
+  }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--green); }
+  .stat-label { font-size: 0.65rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 640px) {
+    #sidebar { display: none; }
+    #stats-bar { left: 10px; right: 10px; bottom: 10px; }
+    .stat-card { min-width: 60px; padding: 6px 10px; }
+    .stat-num { font-size: 0.95rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    🌽 Mapeamento de Doenças do Milho
+    <span>Visualização pública de ocorrências</span>
+  </div>
+  <div class="header-right">
+    <div id="total-badge">⬤ <span id="total-count">0</span> registros</div>
+    <a href="app.html" class="btn-registrar">+ Registrar</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-header">🔍 Filtros</div>
+    <div class="filters">
+      <select class="filter-select" id="filtro-doenca">
+        <option value="">Todas as doenças</option>
+        <option>Mancha branca (Phaeosphaeria maydis)</option>
+        <option>Helmintosporiose (Bipolaris maydis)</option>
+        <option>Mancha de turcicum (Exserohilum turcicum)</option>
+        <option>Enfezamento pálido (Molicutes)</option>
+        <option>Enfezamento vermelho (Molicutes)</option>
+        <option>Ferrugem polissora (Puccinia polysora)</option>
+        <option>Ferrugem comum (Puccinia sorghi)</option>
+      </select>
+      <select class="filter-select" id="filtro-safra">
+        <option value="">Todas as safras</option>
+        <option>Safrinha 2025</option>
+        <option>Safrinha 2026</option>
+        <option>Safrinha 2027</option>
+        <option>Safrinha 2028</option>
+        <option>1ª safra 2024/25</option>
+        <option>1ª safra 2025/26</option>
+        <option>1ª safra 2026/27</option>
+        <option>1ª safra 2027/28</option>
+      </select>
+      <select class="filter-select" id="filtro-estado">
+        <option value="">Todos os estados</option>
+        <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+        <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+        <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+        <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+        <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+        <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+        <option>SP</option><option>SE</option><option>TO</option>
+      </select>
+      <button class="btn-clear" id="btn-clear">Limpar filtros</button>
+    </div>
+    <div class="sidebar-header" style="margin-top:0">📋 Ocorrências</div>
+    <div id="loading-spinner">Carregando...</div>
+    <div id="lista"></div>
+    <div id="lista-empty">Nenhuma ocorrência encontrada com os filtros selecionados.</div>
+  </div>
+
+  <!-- MAPA -->
+  <div id="map"></div>
+
+  <!-- STATS -->
+  <div id="stats-bar">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-inc">—</div>
+      <div class="stat-label">Inc. Média</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-sev">—</div>
+      <div class="stat-label">Sev. Média</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-estados">0</div>
+      <div class="stat-label">Estados</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://kpaaxzthgmooekgbbidk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwYWF4enRoZ21vb2VrZ2JiaWRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTMwNTIsImV4cCI6MjA5NDk2OTA1Mn0.oAXNmhRXb08WK6E6345Xoa96lV2-9d0djzvb1jb8_pU';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ---- MAPA ----
+const map = L.map('map').setView([-15.5, -52], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 18
+}).addTo(map);
+
+// ---- CORES POR DOENÇA ----
+const cores = {
+  'Mancha branca (Phaeosphaeria maydis)':      '#f4a261',
+  'Helmintosporiose (Bipolaris maydis)':        '#8338ec',
+  'Mancha de turcicum (Exserohilum turcicum)':  '#e63946',
+  'Enfezamento pálido (Molicutes)':             '#f9c74f',
+  'Enfezamento vermelho (Molicutes)':           '#ef233c',
+  'Ferrugem polissora (Puccinia polysora)':     '#e76f51',
+  'Ferrugem comum (Puccinia sorghi)':           '#c77dff',
+};
+const corPadrao = '#52b788';
+
+function getCor(doenca) { return cores[doenca] || corPadrao; }
+
+function criarIcone(doenca) {
+  const cor = getCor(doenca);
+  return L.divIcon({
+    html: `<div style="width:14px;height:14px;border-radius:50%;background:${cor};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`,
+    className: '',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+    popupAnchor: [0, -10]
+  });
+}
+
+// ---- LEGENDA ----
+const legenda = L.control({ position: 'bottomright' });
+legenda.onAdd = () => {
+  const div = L.DomUtil.create('div', 'leaflet-legend');
+  div.innerHTML = '<h4>Doenças</h4>' +
+    Object.entries(cores).map(([nome, cor]) => {
+      const label = nome.split('(')[0].trim();
+      return `<div class="legend-item"><div class="legend-dot" style="background:${cor}"></div><span>${label}</span></div>`;
+    }).join('');
+  return div;
+};
+legenda.addTo(map);
+
+// ---- DADOS ----
+let todosRegistros = [];
+let marcadores = [];
+let itemAtivo = null;
+
+async function carregarDados() {
+  document.getElementById('loading-spinner').style.display = 'block';
+  document.getElementById('lista').innerHTML = '';
+  document.getElementById('lista-empty').style.display = 'none';
+
+  const { data, error } = await sb
+    .from('ocorrencias')
+    .select('*')
+    .order('data_registro', { ascending: false });
+
+  document.getElementById('loading-spinner').style.display = 'none';
+
+  if (error) { console.error(error); return; }
+  todosRegistros = data || [];
+  renderizar(todosRegistros);
+}
+
+function renderizar(registros) {
+  // Limpa marcadores
+  marcadores.forEach(m => map.removeLayer(m));
+  marcadores = [];
+
+  const lista = document.getElementById('lista');
+  lista.innerHTML = '';
+
+  if (registros.length === 0) {
+    document.getElementById('lista-empty').style.display = 'block';
+  } else {
+    document.getElementById('lista-empty').style.display = 'none';
+  }
+
+  // Stats
+  document.getElementById('total-count').textContent = registros.length;
+  document.getElementById('stat-total').textContent = registros.length;
+  const incs = registros.filter(r => r.incidencia != null).map(r => r.incidencia);
+  const sevs = registros.filter(r => r.severidade != null).map(r => r.severidade);
+  document.getElementById('stat-inc').textContent = incs.length ? (incs.reduce((a,b)=>a+b,0)/incs.length).toFixed(1)+'%' : '—';
+  document.getElementById('stat-sev').textContent = sevs.length ? (sevs.reduce((a,b)=>a+b,0)/sevs.length).toFixed(1)+'%' : '—';
+  const estados = new Set(registros.map(r => r.estado).filter(Boolean));
+  document.getElementById('stat-estados').textContent = estados.size;
+
+  registros.forEach((r, i) => {
+    // ITEM NA LISTA
+    const item = document.createElement('div');
+    item.className = 'ocorrencia-item';
+    const doencaLabel = r.doenca ? r.doenca.split('(')[0].trim() : 'Doença não informada';
+    item.innerHTML = `
+      <div class="oc-doenca" style="color:${getCor(r.doenca)}">${doencaLabel}</div>
+      <div class="oc-local">📍 ${r.municipio || '—'} — ${r.estado || ''}</div>
+      <div class="oc-meta">
+        ${r.incidencia != null ? `<span class="tag tag-inc">Inc: ${r.incidencia}%</span>` : ''}
+        ${r.severidade != null ? `<span class="tag tag-sev">Sev: ${r.severidade}%</span>` : ''}
+        ${r.estadio ? `<span class="tag tag-est">${r.estadio}</span>` : ''}
+        ${r.safra ? `<span class="tag tag-safra">${r.safra}</span>` : ''}
+      </div>
+    `;
+
+    // MARCADOR NO MAPA
+    let marcador = null;
+    if (r.latitude && r.longitude) {
+      marcador = L.marker([r.latitude, r.longitude], { icon: criarIcone(r.doenca) });
+
+      const dataFmt = r.data_registro ? new Date(r.data_registro+'T00:00:00').toLocaleDateString('pt-BR') : '—';
+      let popupHtml = `
+        <div class="popup-doenca">${r.doenca || '—'}</div>
+        <div class="popup-row">📍 <strong>${r.municipio || '—'}</strong> — ${r.estado || ''}</div>
+        <div class="popup-row">📅 ${dataFmt} &nbsp;|&nbsp; ${r.safra || '—'}</div>
+        ${r.hibrido ? `<div class="popup-row">🌱 <strong>Híbrido:</strong> ${r.hibrido}</div>` : ''}
+        ${r.estadio ? `<div class="popup-row">📊 <strong>Estádio:</strong> ${r.estadio}</div>` : ''}
+        ${r.incidencia != null ? `<div class="popup-row">⬤ <strong>Incidência:</strong> ${r.incidencia}%</div>` : ''}
+        ${r.severidade != null ? `<div class="popup-row">⬤ <strong>Severidade:</strong> ${r.severidade}%</div>` : ''}
+        ${r.sistema_cultivo ? `<div class="popup-row">🔧 ${r.sistema_cultivo}</div>` : ''}
+        ${r.nome_observador ? `<div class="popup-row">👤 ${r.nome_observador}</div>` : ''}
+        ${r.observacoes ? `<div class="popup-row" style="margin-top:6px;font-style:italic;color:#666">${r.observacoes}</div>` : ''}
+        ${r.foto_url ? `<img src="${r.foto_url}" class="popup-foto" alt="Foto">` : ''}
+      `;
+      marcador.bindPopup(popupHtml, { maxWidth: 240 });
+      marcador.addTo(map);
+      marcadores.push(marcador);
+
+      marcador.on('click', () => {
+        ativarItem(item, i);
+      });
+    }
+
+    item.addEventListener('click', () => {
+      ativarItem(item, i);
+      if (marcador) {
+        map.setView([r.latitude, r.longitude], 10, { animate: true });
+        marcador.openPopup();
+      }
+    });
+
+    lista.appendChild(item);
+  });
+}
+
+function ativarItem(item, i) {
+  if (itemAtivo) itemAtivo.classList.remove('active');
+  item.classList.add('active');
+  itemAtivo = item;
+  item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ---- FILTROS ----
+function aplicarFiltros() {
+  const doenca = document.getElementById('filtro-doenca').value;
+  const safra  = document.getElementById('filtro-safra').value;
+  const estado = document.getElementById('filtro-estado').value;
+
+  const filtrados = todosRegistros.filter(r => {
+    if (doenca && r.doenca !== doenca) return false;
+    if (safra  && r.safra  !== safra)  return false;
+    if (estado && r.estado !== estado) return false;
+    return true;
+  });
+  renderizar(filtrados);
+}
+
+['filtro-doenca','filtro-safra','filtro-estado'].forEach(id => {
+  document.getElementById(id).addEventListener('change', aplicarFiltros);
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  document.getElementById('filtro-doenca').value = '';
+  document.getElementById('filtro-safra').value  = '';
+  document.getElementById('filtro-estado').value = '';
+  renderizar(todosRegistros);
+});
+
+// ---- INIT ----
+carregarDados();
+</script>
+</body>
+</html>

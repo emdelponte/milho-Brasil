@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Ocorrências — Doenças do Milho</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #2d6a4f;
+    --green-light: #52b788;
+    --green-pale: #d8f3dc;
+    --gold: #e9c46a;
+    --dark: #1a1a2e;
+    --gray: #6b7280;
+    --gray-light: #f3f4f6;
+    --white: #ffffff;
+    --red: #e63946;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f0f4f0;
+    min-height: 100vh;
+    color: var(--dark);
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    background: var(--green);
+    color: white;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  }
+  header .brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+  }
+  header .brand span {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 400;
+    opacity: 0.75;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  #btn-logout {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 7px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+    display: none;
+  }
+  #btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+  /* ---- MAIN ---- */
+  main {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* ---- LOGIN ---- */
+  #section-login {
+    margin-top: 40px;
+  }
+  .login-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+    border-top: 4px solid var(--green);
+  }
+  .login-card h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 6px;
+  }
+  .login-card p {
+    color: var(--gray);
+    font-size: 0.88rem;
+    margin-bottom: 28px;
+  }
+
+  /* ---- FORM ELEMENTS ---- */
+  .field {
+    margin-bottom: 18px;
+  }
+  label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--dark);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  label .req { color: var(--red); margin-left: 2px; }
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: var(--dark);
+    background: white;
+    transition: border 0.2s, box-shadow 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--green-light);
+    box-shadow: 0 0 0 3px rgba(82,183,136,0.15);
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary:hover { background: #235c42; }
+  .btn-primary:active { transform: scale(0.99); }
+  .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+
+  .btn-gps {
+    width: 100%;
+    padding: 11px;
+    background: var(--green-pale);
+    color: var(--green);
+    border: 1.5px solid var(--green-light);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-gps:hover { background: #b7e4c7; }
+
+  /* ---- FORM CARD ---- */
+  #section-form { display: none; }
+
+  .form-card {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .form-card-header {
+    background: var(--green);
+    color: white;
+    padding: 14px 20px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .form-card-body {
+    padding: 20px;
+  }
+
+  /* ---- GPS STATUS ---- */
+  #gps-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 8px;
+    display: none;
+  }
+  #gps-status.ok { background: var(--green-pale); color: var(--green); display: block; }
+  #gps-status.err { background: #fee2e2; color: var(--red); display: block; }
+
+  /* ---- ROW ---- */
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ---- FOTO PREVIEW ---- */
+  #foto-preview {
+    display: none;
+    margin-top: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 180px;
+  }
+  #foto-preview img { width: 100%; object-fit: cover; max-height: 180px; }
+
+  /* ---- USER INFO BAR ---- */
+  #user-bar {
+    display: none;
+    background: var(--green-pale);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: var(--green);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ---- ALERT ---- */
+  #alert {
+    display: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+  #alert.success { background: var(--green-pale); color: var(--green); display: block; }
+  #alert.error { background: #fee2e2; color: var(--red); display: block; }
+
+  /* ---- LOADING SPINNER ---- */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 480px) {
+    .row-2 { grid-template-columns: 1fr; }
+    .login-card { padding: 28px 20px; }
+    .form-card-body { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    🌽 Milho — Doenças
+    <span>Sistema de Mapeamento</span>
+  </div>
+  <button id="btn-logout">Sair</button>
+</header>
+
+<main>
+
+  <!-- LOGIN -->
+  <section id="section-login">
+    <div class="login-card">
+      <h2>Acesso ao Sistema</h2>
+      <p>Entre com suas credenciais para registrar ocorrências.</p>
+      <div id="alert"></div>
+      <div class="field">
+        <label>E-mail <span class="req">*</span></label>
+        <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Senha <span class="req">*</span></label>
+        <input type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" id="btn-login">Entrar</button>
+    </div>
+  </section>
+
+  <!-- FORMULÁRIO -->
+  <section id="section-form">
+    <div id="user-bar">👤 Logado como: <strong id="user-email-display"></strong></div>
+    <div id="alert"></div>
+
+    <!-- IDENTIFICAÇÃO -->
+    <div class="form-card">
+      <div class="form-card-header">📋 Identificação</div>
+      <div class="form-card-body">
+        <div class="field">
+          <label>Nome do Observador <span class="req">*</span></label>
+          <input type="text" id="nome_observador" placeholder="Seu nome completo">
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label>Data do Registro <span class="req">*</span></label>
+            <input type="date" id="data_registro">
+          </div>
+          <div class="field">
+            <label>Safra <span class="req">*</span></label>
+            <select id="safra">
+              <option value="">Selecione...</option>
+              <option value="Safrinha 2025">Safrinha 2025</option>
+              <option value="Safrinha 2026" selected>Safrinha 2026</option>
+              <option value="Safrinha 2027">Safrinha 2027</option>
+              <option value="Safrinha 2028">Safrinha 2028</option>
+              <option value="1ª safra 2024/25">1ª safra 2024/25</option>
+              <option value="1ª safra 2025/26">1ª safra 2025/26</option>
+              <option value="1ª safra 2026/27">1ª safra 2026/27</option>
+              <option value="1ª safra 2027/28">1ª safra 2027/28</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOENÇA -->
+    <div class="form-card">
+      <div class="form-card-header">🔬 Doença</div>
+      <div class="form-card-body">
+        <div class="field">
+          <label>Doença <span class="req">*</span></label>
+          <select id="doenca">
+            <option value="">Selecione a doença...</option>
+            <option>Mancha branca (Phaeosphaeria maydis)</option>
+            <option>Helmintosporiose (Bipolaris maydis)</option>
+            <option>Mancha de turcicum (Exserohilum turcicum)</option>
+            <option>Enfezamento pálido (Molicutes)</option>
+            <option>Enfezamento vermelho (Molicutes)</option>
+            <option>Ferrugem polissora (Puccinia polysora)</option>
+            <option>Ferrugem comum (Puccinia sorghi)</option>
+          </select>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label>Incidência (%)</label>
+            <input type="number" id="incidencia" min="0" max="100" step="0.01" placeholder="0 – 100">
+          </div>
+          <div class="field">
+            <label>Severidade (%)</label>
+            <input type="number" id="severidade" min="0" max="100" step="0.01" placeholder="0 – 100">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CULTURA -->
+    <div class="form-card">
+      <div class="form-card-header">🌱 Cultura</div>
+      <div class="form-card-body">
+        <div class="field">
+          <label>Híbrido</label>
+          <input type="text" id="hibrido" placeholder="Ex: DKB 290 PRO3">
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label>Estádio Fenológico</label>
+            <select id="estadio">
+              <option value="">Selecione...</option>
+              <option>V3</option><option>V4</option><option>V5</option>
+              <option>V6</option><option>V7</option><option>V8</option>
+              <option>VT</option><option>R1</option><option>R2</option>
+              <option>R3</option><option>R4</option><option>R5</option><option>R6</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Sistema de Cultivo</label>
+            <select id="sistema_cultivo">
+              <option value="">Selecione...</option>
+              <option>Sequeiro</option>
+              <option>Irrigado</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOCALIZAÇÃO -->
+    <div class="form-card">
+      <div class="form-card-header">📍 Localização</div>
+      <div class="form-card-body">
+        <div class="row-2">
+          <div class="field">
+            <label>Município <span class="req">*</span></label>
+            <input type="text" id="municipio" placeholder="Nome do município">
+          </div>
+          <div class="field">
+            <label>Estado (UF) <span class="req">*</span></label>
+            <select id="estado">
+              <option value="">UF...</option>
+              <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+              <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+              <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+              <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+              <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+              <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+              <option>SP</option><option>SE</option><option>TO</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <button type="button" class="btn-gps" id="btn-gps">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9" stroke-dasharray="4 2"/></svg>
+            Capturar localização (GPS)
+          </button>
+          <div id="gps-status"></div>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label>Latitude</label>
+            <input type="number" id="latitude" step="0.000001" placeholder="-15.123456" readonly style="background:#f9fafb;">
+          </div>
+          <div class="field">
+            <label>Longitude</label>
+            <input type="number" id="longitude" step="0.000001" placeholder="-47.123456" readonly style="background:#f9fafb;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPLEMENTO -->
+    <div class="form-card">
+      <div class="form-card-header">📎 Complemento</div>
+      <div class="form-card-body">
+        <div class="field">
+          <label>Foto (opcional)</label>
+          <input type="file" id="foto" accept="image/*" capture="environment">
+          <div id="foto-preview"><img id="foto-img" src="" alt="Preview"></div>
+        </div>
+        <div class="field">
+          <label>Observações</label>
+          <textarea id="observacoes" placeholder="Informações adicionais sobre a ocorrência..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-enviar">Enviar Registro</button>
+  </section>
+
+</main>
+
+<script>
+const SUPABASE_URL = 'https://kpaaxzthgmooekgbbidk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwYWF4enRoZ21vb2VrZ2JiaWRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTMwNTIsImV4cCI6MjA5NDk2OTA1Mn0.oAXNmhRXb08WK6E6345Xoa96lV2-9d0djzvb1jb8_pU';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ---- ELEMENTOS ----
+const secLogin  = document.getElementById('section-login');
+const secForm   = document.getElementById('section-form');
+const btnLogin  = document.getElementById('btn-login');
+const btnLogout = document.getElementById('btn-logout');
+const btnGps    = document.getElementById('btn-gps');
+const btnEnviar = document.getElementById('btn-enviar');
+const alertEl   = document.getElementById('alert');
+
+// ---- ALERTA ----
+function showAlert(msg, type = 'error') {
+  // há dois #alert no DOM (um por seção), vamos usar o visível
+  document.querySelectorAll('#alert').forEach(el => {
+    el.textContent = msg;
+    el.className = type;
+  });
+}
+function hideAlert() {
+  document.querySelectorAll('#alert').forEach(el => { el.className = ''; el.style.display = 'none'; });
+}
+
+// ---- DATA PADRÃO ----
+document.getElementById('data_registro').value = new Date().toISOString().split('T')[0];
+
+// ---- SESSÃO ----
+async function checkSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) showForm(session.user);
+  else showLogin();
+}
+
+function showLogin() {
+  secLogin.style.display = 'block';
+  secForm.style.display  = 'none';
+  btnLogout.style.display = 'none';
+}
+
+function showForm(user) {
+  secLogin.style.display = 'none';
+  secForm.style.display  = 'block';
+  btnLogout.style.display = 'block';
+  const bar = document.getElementById('user-bar');
+  bar.style.display = 'block';
+  document.getElementById('user-email-display').textContent = user.email;
+}
+
+// ---- LOGIN ----
+btnLogin.addEventListener('click', async () => {
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  if (!email || !senha) { showAlert('Preencha e-mail e senha.'); return; }
+  btnLogin.disabled = true;
+  btnLogin.innerHTML = '<span class="spinner"></span>Entrando...';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+  if (error) {
+    showAlert('Credenciais inválidas. Verifique e-mail e senha.');
+    btnLogin.disabled = false;
+    btnLogin.textContent = 'Entrar';
+  } else {
+    showForm(data.user);
+  }
+});
+
+// Enter no campo senha
+document.getElementById('login-senha').addEventListener('keydown', e => {
+  if (e.key === 'Enter') btnLogin.click();
+});
+
+// ---- LOGOUT ----
+btnLogout.addEventListener('click', async () => {
+  await sb.auth.signOut();
+  showLogin();
+});
+
+// ---- GPS ----
+btnGps.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    document.getElementById('gps-status').textContent = 'Geolocalização não suportada neste dispositivo.';
+    document.getElementById('gps-status').className = 'err';
+    return;
+  }
+  btnGps.textContent = 'Obtendo localização...';
+  btnGps.disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById('latitude').value  = pos.coords.latitude.toFixed(6);
+      document.getElementById('longitude').value = pos.coords.longitude.toFixed(6);
+      const acc = pos.coords.accuracy.toFixed(0);
+      document.getElementById('gps-status').textContent = `✓ Lat: ${pos.coords.latitude.toFixed(6)} | Lon: ${pos.coords.longitude.toFixed(6)} | Precisão: ±${acc}m`;
+      document.getElementById('gps-status').className = 'ok';
+      btnGps.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9" stroke-dasharray="4 2"/></svg> Atualizar localização';
+      btnGps.disabled = false;
+    },
+    err => {
+      document.getElementById('gps-status').textContent = 'Erro ao obter localização. Verifique as permissões do navegador.';
+      document.getElementById('gps-status').className = 'err';
+      btnGps.textContent = 'Tentar novamente';
+      btnGps.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+});
+
+// ---- PREVIEW FOTO ----
+document.getElementById('foto').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('foto-img').src = e.target.result;
+    document.getElementById('foto-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+// ---- ENVIO ----
+btnEnviar.addEventListener('click', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { showAlert('Sessão expirada. Faça login novamente.'); showLogin(); return; }
+
+  // Validação
+  const nome      = document.getElementById('nome_observador').value.trim();
+  const doenca    = document.getElementById('doenca').value;
+  const municipio = document.getElementById('municipio').value.trim();
+  const estado    = document.getElementById('estado').value;
+  const safra     = document.getElementById('safra').value;
+  const data_reg  = document.getElementById('data_registro').value;
+
+  if (!nome)      { showAlert('Informe o nome do observador.'); return; }
+  if (!doenca)    { showAlert('Selecione a doença.'); return; }
+  if (!municipio) { showAlert('Informe o município.'); return; }
+  if (!estado)    { showAlert('Selecione o estado (UF).'); return; }
+  if (!safra)     { showAlert('Selecione a safra.'); return; }
+
+  btnEnviar.disabled = true;
+  btnEnviar.innerHTML = '<span class="spinner"></span>Enviando...';
+
+  // Upload foto
+  let foto_url = null;
+  const fotoFile = document.getElementById('foto').files[0];
+  if (fotoFile) {
+    const ext  = fotoFile.name.split('.').pop();
+    const path = `${session.user.id}/${Date.now()}.${ext}`;
+    const { error: uploadErr } = await sb.storage.from('fotos-ocorrencias').upload(path, fotoFile);
+    if (!uploadErr) {
+      const { data: urlData } = sb.storage.from('fotos-ocorrencias').getPublicUrl(path);
+      foto_url = urlData.publicUrl;
+    }
+  }
+
+  // Montar registro
+  const registro = {
+    usuario_id:      session.user.id,
+    nome_observador: nome,
+    data_registro:   data_reg,
+    safra,
+    doenca,
+    incidencia:      parseFloat(document.getElementById('incidencia').value) || null,
+    severidade:      parseFloat(document.getElementById('severidade').value) || null,
+    hibrido:         document.getElementById('hibrido').value.trim() || null,
+    estadio:         document.getElementById('estadio').value || null,
+    sistema_cultivo: document.getElementById('sistema_cultivo').value || null,
+    municipio,
+    estado,
+    latitude:        parseFloat(document.getElementById('latitude').value) || null,
+    longitude:       parseFloat(document.getElementById('longitude').value) || null,
+    foto_url,
+    observacoes:     document.getElementById('observacoes').value.trim() || null,
+  };
+
+  const { error } = await sb.from('ocorrencias').insert([registro]);
+
+  if (error) {
+    showAlert('Erro ao enviar: ' + error.message);
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Registro';
+  } else {
+    // Limpa formulário
+    ['nome_observador','incidencia','severidade','hibrido','municipio',
+     'latitude','longitude','observacoes'].forEach(id => document.getElementById(id).value = '');
+    ['doenca','estadio','sistema_cultivo'].forEach(id => document.getElementById(id).selectedIndex = 0);
+    document.getElementById('foto').value = '';
+    document.getElementById('foto-preview').style.display = 'none';
+    document.getElementById('gps-status').className = '';
+    document.getElementById('data_registro').value = new Date().toISOString().split('T')[0];
+    document.getElementById('safra').value = 'Safrinha 2026';
+
+    showAlert('✓ Registro enviado com sucesso!', 'success');
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Registro';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+
+// ---- INIT ----
+checkSession();
+</script>
+</body>
+</html>
