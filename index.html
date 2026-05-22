@@ -36,7 +36,6 @@
     z-index: 1000;
   }
   .brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.95rem; line-height: 1.2; }
-  .brand span { display: block; font-size: 0.65rem; font-weight: 400; opacity: 0.75; font-family: 'DM Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
   .header-right { display: flex; align-items: center; gap: 8px; }
   #total-badge {
     background: rgba(255,255,255,0.2);
@@ -171,63 +170,71 @@
   .stat-num { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--green); }
   .stat-label { font-size: 0.62rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
 
-  /* ---- MOBILE BOTTOM SHEET ---- */
-  #mobile-toggle {
+  /* ---- BOTTOM NAV ---- */
+  #bottom-nav {
     display: none;
-    position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 600;
-    background: var(--green);
-    color: white;
-    border: none;
-    padding: 10px 22px;
-    border-radius: 24px;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    z-index: 1000;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    color: var(--gray);
+    font-size: 0.72rem;
     font-family: 'Syne', sans-serif;
-    font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    transition: color 0.2s;
   }
+  .nav-item.active { color: var(--green); }
+  .nav-item svg { width: 22px; height: 22px; display: block; margin: 0 auto 4px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* RESPONSIVE — mobile */
   @media (max-width: 768px) {
     header { padding: 8px 12px; }
     .brand { font-size: 0.85rem; }
-    .brand span { font-size: 0.6rem; }
     #total-badge { padding: 3px 8px; font-size: 0.68rem; }
     .btn-registrar { padding: 5px 12px; font-size: 0.75rem; }
 
+    #bottom-nav { display: flex; }
+
     #sidebar {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      width: 100%;
-      height: 55vh;
-      border-radius: 18px 18px 0 0;
-      box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%;
+      border-radius: 0;
+      box-shadow: none;
       z-index: 800;
-      transform: translateY(100%);
-      transition: transform 0.35s cubic-bezier(.4,0,.2,1);
-    }
-    #sidebar.open { transform: translateY(0); }
-    #sidebar::before {
-      content: '';
-      display: block;
-      width: 40px; height: 4px;
-      background: #ccc;
-      border-radius: 4px;
-      margin: 10px auto 4px;
+      display: none; /* Controlled by JS classes */
     }
 
-    #mobile-toggle { display: block; }
-    #stats-bar { left: 10px; right: 10px; bottom: 60px; justify-content: center; }
+    body.tab-filtros #sidebar { display: flex; }
+    body.tab-filtros #sidebar > .sidebar-header:nth-of-type(2),
+    body.tab-filtros #lista,
+    body.tab-filtros #lista-empty,
+    body.tab-filtros #loading-spinner { display: none; }
+    body.tab-filtros #map, body.tab-filtros #stats-bar { display: none; }
+
+    body.tab-ocorrencias #sidebar { display: flex; }
+    body.tab-ocorrencias #sidebar > .sidebar-header:first-child,
+    body.tab-ocorrencias .filters { display: none; }
+    body.tab-ocorrencias #map, body.tab-ocorrencias #stats-bar { display: none; }
+
+    body.tab-mapa #sidebar { display: none; }
+    body.tab-mapa #map, body.tab-mapa #stats-bar { display: block; }
+
+    #stats-bar { left: 10px; right: 10px; bottom: auto; top: 10px; justify-content: center; flex-wrap: wrap; }
     .stat-card { min-width: 55px; padding: 6px 8px; }
     .stat-num { font-size: 0.9rem; }
     .stat-label { font-size: 0.58rem; }
 
     .leaflet-legend { max-width: 160px; padding: 8px 10px; font-size: 0.68rem; }
     .leaflet-legend h4 { font-size: 0.68rem; margin-bottom: 6px; }
+    .leaflet-bottom { bottom: 20px; }
   }
 </style>
 </head>
@@ -235,8 +242,7 @@
 
 <header>
   <div class="brand">
-    🌽 Mapeamento de Doenças do Milho
-    <span>Visualização pública de ocorrências</span>
+    🌽 Monitora manchas
   </div>
   <div class="header-right">
     <div id="total-badge">⬤ <span id="total-count">0</span> registros</div>
@@ -251,14 +257,10 @@
     <div class="sidebar-header">🔍 Filtros</div>
     <div class="filters">
       <select class="filter-select" id="filtro-doenca">
-        <option value="">Todas as doenças</option>
+        <option value="">Todas as manchas</option>
         <option>Mancha branca (Phaeosphaeria maydis)</option>
-        <option>Helmintosporiose (Bipolaris maydis)</option>
+        <option>Mancha de Bipolaris (Bipolaris maydis)</option>
         <option>Mancha de turcicum (Exserohilum turcicum)</option>
-        <option>Enfezamento pálido (Molicutes)</option>
-        <option>Enfezamento vermelho (Molicutes)</option>
-        <option>Ferrugem polissora (Puccinia polysora)</option>
-        <option>Ferrugem comum (Puccinia sorghi)</option>
       </select>
       <select class="filter-select" id="filtro-safra">
         <option value="">Todas as safras</option>
@@ -271,16 +273,6 @@
         <option>1ª safra 2026/27</option>
         <option>1ª safra 2027/28</option>
       </select>
-      <select class="filter-select" id="filtro-estado">
-        <option value="">Todos os estados</option>
-        <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
-        <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
-        <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
-        <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
-        <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
-        <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
-        <option>SP</option><option>SE</option><option>TO</option>
-      </select>
       <button class="btn-clear" id="btn-clear">Limpar filtros</button>
     </div>
     <div class="sidebar-header" style="margin-top:0">📋 Ocorrências</div>
@@ -292,8 +284,6 @@
   <!-- MAPA -->
   <div id="map"></div>
 
-  <!-- MOBILE TOGGLE -->
-  <button id="mobile-toggle">🔍 Filtros e Lista</button>
   <div id="stats-bar">
     <div class="stat-card">
       <div class="stat-num" id="stat-total">0</div>
@@ -307,12 +297,24 @@
       <div class="stat-num" id="stat-sev">—</div>
       <div class="stat-label">Sev. Média</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-num" id="stat-estados">0</div>
-      <div class="stat-label">Estados</div>
-    </div>
   </div>
 
+</div>
+
+<!-- BOTTOM NAV -->
+<div id="bottom-nav">
+  <div class="nav-item" data-tab="filtros">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    Filtros
+  </div>
+  <div class="nav-item active" data-tab="mapa">
+    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Mapa
+  </div>
+  <div class="nav-item" data-tab="ocorrencias">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+    Ocorrências
+  </div>
 </div>
 
 <script>
@@ -331,12 +333,8 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // ---- CORES POR DOENÇA ----
 const cores = {
   'Mancha branca (Phaeosphaeria maydis)':      '#f4a261',
-  'Helmintosporiose (Bipolaris maydis)':        '#8338ec',
-  'Mancha de turcicum (Exserohilum turcicum)':  '#e63946',
-  'Enfezamento pálido (Molicutes)':             '#f9c74f',
-  'Enfezamento vermelho (Molicutes)':           '#ef233c',
-  'Ferrugem polissora (Puccinia polysora)':     '#e76f51',
-  'Ferrugem comum (Puccinia sorghi)':           '#c77dff',
+  'Mancha de Bipolaris (Bipolaris maydis)':    '#8338ec',
+  'Mancha de turcicum (Exserohilum turcicum)':  '#e63946'
 };
 const corPadrao = '#52b788';
 
@@ -409,8 +407,6 @@ function renderizar(registros) {
   const sevs = registros.filter(r => r.severidade != null).map(r => r.severidade);
   document.getElementById('stat-inc').textContent = incs.length ? (incs.reduce((a,b)=>a+b,0)/incs.length).toFixed(1)+'%' : '—';
   document.getElementById('stat-sev').textContent = sevs.length ? (sevs.reduce((a,b)=>a+b,0)/sevs.length).toFixed(1)+'%' : '—';
-  const estados = new Set(registros.map(r => r.estado).filter(Boolean));
-  document.getElementById('stat-estados').textContent = estados.size;
 
   registros.forEach((r, i) => {
     // ITEM NA LISTA
@@ -479,42 +475,37 @@ function ativarItem(item, i) {
 function aplicarFiltros() {
   const doenca = document.getElementById('filtro-doenca').value;
   const safra  = document.getElementById('filtro-safra').value;
-  const estado = document.getElementById('filtro-estado').value;
 
   const filtrados = todosRegistros.filter(r => {
     if (doenca && r.doenca !== doenca) return false;
     if (safra  && r.safra  !== safra)  return false;
-    if (estado && r.estado !== estado) return false;
     return true;
   });
   renderizar(filtrados);
 }
 
-['filtro-doenca','filtro-safra','filtro-estado'].forEach(id => {
+['filtro-doenca','filtro-safra'].forEach(id => {
   document.getElementById(id).addEventListener('change', aplicarFiltros);
 });
 
 document.getElementById('btn-clear').addEventListener('click', () => {
   document.getElementById('filtro-doenca').value = '';
   document.getElementById('filtro-safra').value  = '';
-  document.getElementById('filtro-estado').value = '';
   renderizar(todosRegistros);
 });
 
-// ---- MOBILE TOGGLE ----
-const mobileToggle = document.getElementById('mobile-toggle');
-const sidebar = document.getElementById('sidebar');
-mobileToggle.addEventListener('click', () => {
-  sidebar.classList.toggle('open');
-  mobileToggle.textContent = sidebar.classList.contains('open') ? '✕ Fechar' : '🔍 Filtros e Lista';
+// ---- BOTTOM NAV ----
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    if (window.innerWidth > 768) return;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    document.body.className = 'tab-' + item.dataset.tab;
+  });
 });
-// Close sheet when clicking map on mobile
-map.on('click', () => {
-  if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
-    sidebar.classList.remove('open');
-    mobileToggle.textContent = '🔍 Filtros e Lista';
-  }
-});
+if (window.innerWidth <= 768) {
+  document.body.className = 'tab-mapa';
+}
 
 // ---- INIT ----
 carregarDados();
