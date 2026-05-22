@@ -370,6 +370,7 @@
     text-align: center;
     padding: 20px 0;
   }
+  .oc-obs { font-size: 0.75rem; color: var(--gray); margin-top: 6px; font-style: italic; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
 
   /* ---- RESPONSIVE ---- */
   @media (max-width: 480px) {
@@ -782,8 +783,9 @@ async function carregarMeusRegistros(userId) {
     div.innerHTML = `
       <div class="meu-registro-info">
         <div class="meu-reg-doenca">${doencaLabel}</div>
-        <div class="meu-reg-local">📍 ${r.municipio || '—'} — ${r.estado || ''}</div>
-        <div class="meu-reg-data">📅 ${dataFmt} &nbsp;|&nbsp; ${r.safra || '—'}</div>
+        <div class="meu-reg-local">${r.municipio || '—'} — ${r.estado || ''}</div>
+        <div class="meu-reg-data">${dataFmt} &nbsp;|&nbsp; ${r.safra || '—'}</div>
+        ${r.observacoes ? `<div class="oc-obs">${r.observacoes}</div>` : ''}
       </div>
       <button class="btn-editar-reg" data-id="${r.id}">✏️ Editar</button>
     `;
@@ -827,20 +829,25 @@ btnEnviar.addEventListener('click', async () => {
     }
   }
 
+  const valInc = parseFloat(document.getElementById('incidencia').value);
+  const valSev = parseFloat(document.getElementById('severidade').value);
+  const valLat = parseFloat(document.getElementById('latitude').value);
+  const valLon = parseFloat(document.getElementById('longitude').value);
+
   const registro = {
     nome_observador: nome,
     data_registro:   data_reg,
     safra,
     doenca,
-    incidencia:      parseFloat(document.getElementById('incidencia').value) || null,
-    severidade:      parseFloat(document.getElementById('severidade').value) || null,
+    incidencia:      !isNaN(valInc) ? valInc : null,
+    severidade:      !isNaN(valSev) ? valSev : null,
     hibrido:         document.getElementById('hibrido').value.trim() || null,
     estadio:         document.getElementById('estadio').value || null,
     sistema_cultivo: document.getElementById('sistema_cultivo').value || null,
     municipio,
     estado,
-    latitude:        parseFloat(document.getElementById('latitude').value) || null,
-    longitude:       parseFloat(document.getElementById('longitude').value) || null,
+    latitude:        !isNaN(valLat) ? valLat : null,
+    longitude:       !isNaN(valLon) ? valLon : null,
     observacoes:     document.getElementById('observacoes').value.trim() || null,
   };
   if (foto_url) registro.foto_url = foto_url;
@@ -848,7 +855,15 @@ btnEnviar.addEventListener('click', async () => {
   let error;
   if (editandoId) {
     // UPDATE
-    ({ error } = await sb.from('ocorrencias').update(registro).eq('id', editandoId).eq('usuario_id', session.user.id));
+    registro.usuario_id = session.user.id; // Garante que o ID do usuário seja reenviado (ajuda com algumas políticas RLS restritas)
+    const { data: updatedData, error: updateError } = await sb.from('ocorrencias')
+      .update(registro)
+      .eq('id', editandoId)
+      .select();
+    error = updateError;
+    if (!error && (!updatedData || updatedData.length === 0)) {
+      error = { message: 'Nenhuma linha foi alterada. O Supabase bloqueou a atualização silenciosamente. Verifique a regra do RLS.' };
+    }
   } else {
     // INSERT
     registro.usuario_id = session.user.id;
