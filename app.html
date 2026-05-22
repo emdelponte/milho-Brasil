@@ -271,11 +271,112 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ---- EDIT MODE BANNER ---- */
+  #edit-banner {
+    display: none;
+    background: #fff7e6;
+    border: 1.5px solid #e9c46a;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 0.88rem;
+    color: #7a5c00;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  #edit-banner.visible { display: flex; }
+  #btn-cancelar-edicao {
+    background: transparent;
+    border: 1px solid #e9c46a;
+    color: #7a5c00;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  #btn-cancelar-edicao:hover { background: #fef3c7; }
+
+  /* ---- MEUS REGISTROS ---- */
+  #section-meus-registros {
+    margin-top: 32px;
+    display: none;
+  }
+  .registros-header {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--green);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--green-pale);
+  }
+  .meu-registro-item {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-left: 3px solid var(--green-light);
+  }
+  .meu-registro-info { flex: 1; min-width: 0; }
+  .meu-reg-doenca {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--green);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meu-reg-local {
+    font-size: 0.76rem;
+    color: var(--gray);
+    font-family: 'DM Mono', monospace;
+    margin-top: 3px;
+  }
+  .meu-reg-data {
+    font-size: 0.72rem;
+    color: #aaa;
+    font-family: 'DM Mono', monospace;
+    margin-top: 2px;
+  }
+  .btn-editar-reg {
+    flex-shrink: 0;
+    background: var(--green-pale);
+    color: var(--green);
+    border: 1px solid var(--green-light);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-editar-reg:hover { background: #b7e4c7; }
+  #registros-loading, #registros-empty {
+    font-size: 0.85rem;
+    color: var(--gray);
+    text-align: center;
+    padding: 20px 0;
+  }
+
   /* ---- RESPONSIVE ---- */
   @media (max-width: 480px) {
     .row-2 { grid-template-columns: 1fr; }
     .login-card { padding: 28px 20px; }
     .form-card-body { padding: 16px; }
+    .meu-registro-item { flex-direction: column; align-items: flex-start; }
   }
 </style>
 </head>
@@ -465,7 +566,19 @@
       </div>
     </div>
 
+    <div id="edit-banner">
+      <span>✏️ Modo edição — editando registro existente</span>
+      <button id="btn-cancelar-edicao">Cancelar</button>
+    </div>
     <button class="btn-primary" id="btn-enviar">Enviar Registro</button>
+  </section>
+
+  <!-- MEUS REGISTROS -->
+  <section id="section-meus-registros">
+    <div class="registros-header">📂 Meus Registros</div>
+    <div id="registros-loading">Carregando...</div>
+    <div id="registros-empty" style="display:none">Nenhum registro encontrado.</div>
+    <div id="lista-meus-registros"></div>
   </section>
 
 </main>
@@ -520,6 +633,8 @@ function showForm(user) {
   const bar = document.getElementById('user-bar');
   bar.style.display = 'block';
   document.getElementById('user-email-display').textContent = user.email;
+  document.getElementById('section-meus-registros').style.display = 'block';
+  carregarMeusRegistros(user.id);
 }
 
 // ---- LOGIN ----
@@ -591,7 +706,98 @@ document.getElementById('foto').addEventListener('change', function() {
   reader.readAsDataURL(file);
 });
 
-// ---- ENVIO ----
+// ---- MODO EDIÇÃO ----
+let editandoId = null;
+
+function entrarModoEdicao(registro) {
+  editandoId = registro.id;
+  // Preencher campos
+  document.getElementById('nome_observador').value  = registro.nome_observador || '';
+  document.getElementById('data_registro').value    = registro.data_registro   || '';
+  document.getElementById('safra').value            = registro.safra           || '';
+  document.getElementById('doenca').value           = registro.doenca          || '';
+  document.getElementById('incidencia').value       = registro.incidencia      ?? '';
+  document.getElementById('severidade').value       = registro.severidade      ?? '';
+  document.getElementById('hibrido').value          = registro.hibrido         || '';
+  document.getElementById('estadio').value          = registro.estadio         || '';
+  document.getElementById('sistema_cultivo').value  = registro.sistema_cultivo || '';
+  document.getElementById('municipio').value        = registro.municipio       || '';
+  document.getElementById('estado').value           = registro.estado          || '';
+  document.getElementById('latitude').value         = registro.latitude        ?? '';
+  document.getElementById('longitude').value        = registro.longitude       ?? '';
+  document.getElementById('observacoes').value      = registro.observacoes     || '';
+  // GPS status
+  if (registro.latitude && registro.longitude) {
+    const gs = document.getElementById('gps-status');
+    gs.textContent = `✓ Lat: ${registro.latitude} | Lon: ${registro.longitude}`;
+    gs.className = 'ok';
+  }
+  // Banner
+  document.getElementById('edit-banner').classList.add('visible');
+  document.getElementById('btn-enviar').textContent = 'Salvar Alterações';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function sairModoEdicao() {
+  editandoId = null;
+  document.getElementById('edit-banner').classList.remove('visible');
+  document.getElementById('btn-enviar').textContent = 'Enviar Registro';
+  limparFormulario();
+}
+
+function limparFormulario() {
+  ['nome_observador','incidencia','severidade','hibrido','municipio',
+   'latitude','longitude','observacoes'].forEach(id => document.getElementById(id).value = '');
+  ['doenca','estadio','sistema_cultivo'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  document.getElementById('foto').value = '';
+  document.getElementById('foto-preview').style.display = 'none';
+  document.getElementById('gps-status').className = '';
+  document.getElementById('data_registro').value = new Date().toISOString().split('T')[0];
+  document.getElementById('safra').value = 'Safrinha 2026';
+}
+
+document.getElementById('btn-cancelar-edicao').addEventListener('click', sairModoEdicao);
+
+// ---- MEUS REGISTROS ----
+async function carregarMeusRegistros(userId) {
+  document.getElementById('registros-loading').style.display = 'block';
+  document.getElementById('registros-empty').style.display = 'none';
+  document.getElementById('lista-meus-registros').innerHTML = '';
+
+  const { data, error } = await sb
+    .from('ocorrencias')
+    .select('*')
+    .eq('usuario_id', userId)
+    .order('data_registro', { ascending: false });
+
+  document.getElementById('registros-loading').style.display = 'none';
+  if (error || !data || data.length === 0) {
+    document.getElementById('registros-empty').style.display = 'block';
+    return;
+  }
+
+  const lista = document.getElementById('lista-meus-registros');
+  data.forEach(r => {
+    const doencaLabel = r.doenca ? r.doenca.split('(')[0].trim() : 'Doença não informada';
+    const dataFmt = r.data_registro
+      ? new Date(r.data_registro + 'T00:00:00').toLocaleDateString('pt-BR')
+      : '—';
+    const div = document.createElement('div');
+    div.className = 'meu-registro-item';
+    div.innerHTML = `
+      <div class="meu-registro-info">
+        <div class="meu-reg-doenca">${doencaLabel}</div>
+        <div class="meu-reg-local">📍 ${r.municipio || '—'} — ${r.estado || ''}</div>
+        <div class="meu-reg-data">📅 ${dataFmt} &nbsp;|&nbsp; ${r.safra || '—'}</div>
+      </div>
+      <button class="btn-editar-reg" data-id="${r.id}">✏️ Editar</button>
+    `;
+    div.querySelector('.btn-editar-reg').addEventListener('click', () => entrarModoEdicao(r));
+    lista.appendChild(div);
+  });
+}
+
+// ---- ENVIO / ATUALIZAÇÃO ----
 btnEnviar.addEventListener('click', async () => {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { showAlert('Sessão expirada. Faça login novamente.'); showLogin(); return; }
@@ -611,9 +817,9 @@ btnEnviar.addEventListener('click', async () => {
   if (!safra)     { showAlert('Selecione a safra.'); return; }
 
   btnEnviar.disabled = true;
-  btnEnviar.innerHTML = '<span class="spinner"></span>Enviando...';
+  btnEnviar.innerHTML = '<span class="spinner"></span>' + (editandoId ? 'Salvando...' : 'Enviando...');
 
-  // Upload foto
+  // Upload foto (só se nova foto selecionada)
   let foto_url = null;
   const fotoFile = document.getElementById('foto').files[0];
   if (fotoFile) {
@@ -626,9 +832,7 @@ btnEnviar.addEventListener('click', async () => {
     }
   }
 
-  // Montar registro
   const registro = {
-    usuario_id:      session.user.id,
     nome_observador: nome,
     data_registro:   data_reg,
     safra,
@@ -642,30 +846,31 @@ btnEnviar.addEventListener('click', async () => {
     estado,
     latitude:        parseFloat(document.getElementById('latitude').value) || null,
     longitude:       parseFloat(document.getElementById('longitude').value) || null,
-    foto_url,
     observacoes:     document.getElementById('observacoes').value.trim() || null,
   };
+  if (foto_url) registro.foto_url = foto_url;
 
-  const { error } = await sb.from('ocorrencias').insert([registro]);
+  let error;
+  if (editandoId) {
+    // UPDATE
+    ({ error } = await sb.from('ocorrencias').update(registro).eq('id', editandoId).eq('usuario_id', session.user.id));
+  } else {
+    // INSERT
+    registro.usuario_id = session.user.id;
+    ({ error } = await sb.from('ocorrencias').insert([registro]));
+  }
 
   if (error) {
-    showAlert('Erro ao enviar: ' + error.message);
+    showAlert('Erro: ' + error.message);
     btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Registro';
+    btnEnviar.textContent = editandoId ? 'Salvar Alterações' : 'Enviar Registro';
   } else {
-    // Limpa formulário
-    ['nome_observador','incidencia','severidade','hibrido','municipio',
-     'latitude','longitude','observacoes'].forEach(id => document.getElementById(id).value = '');
-    ['doenca','estadio','sistema_cultivo'].forEach(id => document.getElementById(id).selectedIndex = 0);
-    document.getElementById('foto').value = '';
-    document.getElementById('foto-preview').style.display = 'none';
-    document.getElementById('gps-status').className = '';
-    document.getElementById('data_registro').value = new Date().toISOString().split('T')[0];
-    document.getElementById('safra').value = 'Safrinha 2026';
-
-    showAlert('✓ Registro enviado com sucesso!', 'success');
+    const msg = editandoId ? '✓ Registro atualizado com sucesso!' : '✓ Registro enviado com sucesso!';
+    sairModoEdicao();
+    showAlert(msg, 'success');
     btnEnviar.disabled = false;
     btnEnviar.textContent = 'Enviar Registro';
+    carregarMeusRegistros(session.user.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 });
