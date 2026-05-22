@@ -21,7 +21,7 @@
     --shadow: 0 4px 20px rgba(0,0,0,0.10);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: #f0f4f0; color: var(--dark); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  body { font-family: 'DM Sans', sans-serif; background: #f0f4f0; color: var(--dark); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
   /* HEADER */
   header {
@@ -155,21 +155,6 @@
   .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; line-height: 1.2; }
   .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.2); }
 
-  /* STATS BAR */
-  #stats-bar {
-    position: absolute;
-    bottom: 20px;
-    left: 320px;
-    right: 20px;
-    display: flex;
-    gap: 8px;
-    z-index: 500;
-    pointer-events: none;
-  }
-  .stat-card { background: white; border-radius: 8px; padding: 8px 14px; box-shadow: var(--shadow); text-align: center; min-width: 70px; pointer-events: auto; }
-  .stat-num { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--green); }
-  .stat-label { font-size: 0.62rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
-
   /* ---- BOTTOM NAV ---- */
   #bottom-nav {
     display: none;
@@ -182,7 +167,7 @@
   .nav-item {
     flex: 1;
     text-align: center;
-    padding: 10px 0;
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 14px));
     color: var(--gray);
     font-size: 0.72rem;
     font-family: 'Syne', sans-serif;
@@ -217,20 +202,15 @@
     body.tab-filtros #lista,
     body.tab-filtros #lista-empty,
     body.tab-filtros #loading-spinner { display: none; }
-    body.tab-filtros #map, body.tab-filtros #stats-bar { display: none; }
+    body.tab-filtros #map { display: none; }
 
     body.tab-ocorrencias #sidebar { display: flex; }
     body.tab-ocorrencias #sidebar > .sidebar-header:first-child,
     body.tab-ocorrencias .filters { display: none; }
-    body.tab-ocorrencias #map, body.tab-ocorrencias #stats-bar { display: none; }
+    body.tab-ocorrencias #map { display: none; }
 
     body.tab-mapa #sidebar { display: none; }
-    body.tab-mapa #map, body.tab-mapa #stats-bar { display: block; }
-
-    #stats-bar { left: 10px; right: 10px; bottom: auto; top: 10px; justify-content: center; flex-wrap: wrap; }
-    .stat-card { min-width: 55px; padding: 6px 8px; }
-    .stat-num { font-size: 0.9rem; }
-    .stat-label { font-size: 0.58rem; }
+    body.tab-mapa #map { display: block; }
 
     .leaflet-legend { max-width: 160px; padding: 8px 10px; font-size: 0.68rem; }
     .leaflet-legend h4 { font-size: 0.68rem; margin-bottom: 6px; }
@@ -283,21 +263,6 @@
 
   <!-- MAPA -->
   <div id="map"></div>
-
-  <div id="stats-bar">
-    <div class="stat-card">
-      <div class="stat-num" id="stat-total">0</div>
-      <div class="stat-label">Total</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="stat-inc">—</div>
-      <div class="stat-label">Inc. Média</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="stat-sev">—</div>
-      <div class="stat-label">Sev. Média</div>
-    </div>
-  </div>
 
 </div>
 
@@ -402,11 +367,6 @@ function renderizar(registros) {
 
   // Stats
   document.getElementById('total-count').textContent = registros.length;
-  document.getElementById('stat-total').textContent = registros.length;
-  const incs = registros.filter(r => r.incidencia != null).map(r => r.incidencia);
-  const sevs = registros.filter(r => r.severidade != null).map(r => r.severidade);
-  document.getElementById('stat-inc').textContent = incs.length ? (incs.reduce((a,b)=>a+b,0)/incs.length).toFixed(1)+'%' : '—';
-  document.getElementById('stat-sev').textContent = sevs.length ? (sevs.reduce((a,b)=>a+b,0)/sevs.length).toFixed(1)+'%' : '—';
 
   registros.forEach((r, i) => {
     // ITEM NA LISTA
