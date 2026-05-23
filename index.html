@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -86,7 +87,42 @@
     letter-spacing: 0.8px;
     color: var(--green);
   }
-  .filters { padding: 12px 16px; border-bottom: 1px solid #e8ede8; display: flex; flex-direction: column; gap: 8px; }
+  
+  /* FLOATING FILTERS */
+  #floating-filters-container {
+    position: absolute;
+    top: 12px;
+    left: 70px;
+    z-index: 1000;
+  }
+  #btn-toggle-filters {
+    background: white;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    padding: 8px 12px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--green);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #floating-filters-panel {
+    display: none;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 12px;
+    margin-top: 8px;
+    width: 240px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #floating-filters-panel.open { display: flex; }
+
   select.filter-select {
     width: 100%;
     padding: 8px 12px;
@@ -141,8 +177,81 @@
   #lista-empty { padding: 30px 20px; text-align: center; color: var(--gray); font-size: 0.85rem; display: none; }
   #loading-spinner { padding: 30px 20px; text-align: center; color: var(--gray); font-size: 0.85rem; }
 
-  /* MAPA */
+  /* MAPA E GRÁFICOS */
+  .main-content { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background: #f0f4f0; }
   #map { flex: 1; z-index: 1; }
+
+  .view-switcher {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1000;
+    display: flex;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    overflow: hidden;
+  }
+  .view-btn {
+    padding: 8px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--gray);
+    background: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .view-btn.active { background: var(--green); color: white; }
+
+  #charts-view {
+    flex: 1;
+    display: none;
+    background: #f0f4f0;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .chart-container {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .chart-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 16px;
+    font-size: 1.05rem;
+  }
+
+  /* SOBRE VIEW */
+  #sobre-view {
+    flex: 1;
+    display: none;
+    background: #f0f4f0;
+    overflow-y: auto;
+    padding: 30px 20px;
+  }
+  .sobre-content {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #444;
+  }
+  .sobre-content h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.3rem;
+    color: var(--green);
+    margin-bottom: 16px;
+  }
 
   /* POPUP */
   .popup-doenca { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.9rem; color: var(--green); margin-bottom: 6px; line-height: 1.3; }
@@ -255,20 +364,31 @@
       display: none; /* Controlled by JS classes */
     }
 
-    body.tab-filtros #sidebar { display: flex; }
-    body.tab-filtros #sidebar > .sidebar-header:nth-of-type(2),
-    body.tab-filtros #lista,
-    body.tab-filtros #lista-empty,
-    body.tab-filtros #loading-spinner { display: none; }
-    body.tab-filtros #map { display: none; }
-
     body.tab-ocorrencias #sidebar { display: flex; }
-    body.tab-ocorrencias #sidebar > .sidebar-header:first-child,
-    body.tab-ocorrencias .filters { display: none; }
-    body.tab-ocorrencias #map { display: none; }
+    body.tab-ocorrencias .main-content { display: none; }
 
     body.tab-mapa #sidebar { display: none; }
-    body.tab-mapa #map { display: block; }
+    body.tab-mapa .main-content { display: flex; }
+    body.tab-mapa #map { display: block !important; }
+    body.tab-mapa #charts-view { display: none !important; }
+    body.tab-mapa #sobre-view { display: none !important; }
+
+    body.tab-graficos #sidebar { display: none; }
+    body.tab-graficos .main-content { display: flex; }
+    body.tab-graficos #charts-view { display: block !important; }
+    body.tab-graficos #map { display: none !important; }
+    body.tab-graficos #sobre-view { display: none !important; }
+    body.tab-graficos #floating-filters-container { display: none !important; }
+
+    body.tab-sobre #sidebar { display: none; }
+    body.tab-sobre .main-content { display: flex; }
+    body.tab-sobre #sobre-view { display: block !important; }
+    body.tab-sobre #map { display: none !important; }
+    body.tab-sobre #charts-view { display: none !important; }
+    body.tab-sobre #floating-filters-container { display: none !important; }
+    body.tab-sobre #desktop-view-switcher { display: none !important; }
+
+    .view-switcher { display: none; }
 
     .leaflet-legend { max-width: 160px; padding: 8px 10px; font-size: 0.68rem; }
     .leaflet-legend h4 { font-size: 0.68rem; margin-bottom: 6px; }
@@ -301,43 +421,78 @@
 
   <!-- SIDEBAR -->
   <div id="sidebar">
-    <div class="sidebar-header">🔍 Filtros</div>
-    <div class="filters">
-      <select class="filter-select" id="filtro-doenca">
-        <option value="">Todas as manchas</option>
-        <option>Mancha branca (Phaeosphaeria maydis)</option>
-        <option>Mancha de Bipolaris (Bipolaris maydis)</option>
-        <option>Mancha de turcicum (Exserohilum turcicum)</option>
-      </select>
-      <select class="filter-select" id="filtro-safra">
-        <option value="">Todas as safras</option>
-        <option>Safrinha 2025</option>
-        <option>Safrinha 2026</option>
-        <option>Safrinha 2027</option>
-        <option>Safrinha 2028</option>
-        <option>1ª safra 2024/25</option>
-        <option>1ª safra 2025/26</option>
-        <option>1ª safra 2026/27</option>
-        <option>1ª safra 2027/28</option>
-      </select>
-      <button class="btn-clear" id="btn-clear">Limpar filtros</button>
-    </div>
-    <div class="sidebar-header" style="margin-top:0">📋 Ocorrências</div>
+    <div class="sidebar-header">📋 Ocorrências</div>
     <div id="loading-spinner">Carregando...</div>
     <div id="lista"></div>
     <div id="lista-empty">Nenhuma ocorrência encontrada com os filtros selecionados.</div>
   </div>
 
-  <!-- MAPA -->
-  <div id="map"></div>
+  <!-- CONTEUDO PRINCIPAL -->
+  <div class="main-content">
+    
+    <!-- FLOATING FILTERS -->
+    <div id="floating-filters-container">
+      <button id="btn-toggle-filters">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filtros
+      </button>
+      <div id="floating-filters-panel">
+        <select class="filter-select" id="filtro-doenca">
+          <option value="">Todas as manchas</option>
+          <option>Mancha branca (Phaeosphaeria maydis)</option>
+          <option>Mancha de Bipolaris (Bipolaris maydis)</option>
+          <option>Mancha de turcicum (Exserohilum turcicum)</option>
+        </select>
+        <select class="filter-select" id="filtro-safra">
+          <option value="">Todas as safras</option>
+          <option>Safra 2025/26</option>
+          <option>Safrinha 2026</option>
+          <option>Terceira Safra 2026</option>
+        </select>
+        <button class="btn-clear" id="btn-clear">Limpar filtros</button>
+      </div>
+    </div>
+
+    <!-- SWITCHER DESKTOP -->
+    <div class="view-switcher" id="desktop-view-switcher">
+      <button class="view-btn active" data-view="mapa">Mapa</button>
+      <button class="view-btn" data-view="graficos">Gráficos</button>
+      <button class="view-btn" data-view="sobre">Sobre</button>
+    </div>
+    
+    <!-- MAPA -->
+    <div id="map"></div>
+    
+    <!-- SOBRE VIEW -->
+    <div id="sobre-view">
+      <div class="sobre-content">
+        <h2>Sobre o Projeto</h2>
+        <p>A ferramenta é desenvolvida pela <strong>Rede Fitossanidade Tropical</strong>, que conta com uma rede de pesquisadores e consultores para o monitoramento de doenças do milho.</p>
+        <br>
+        <p><em>(O texto completo será atualizado futuramente)</em></p>
+      </div>
+    </div>
+
+    <!-- GRAFICOS -->
+    <div id="charts-view">
+      <div class="chart-container">
+        <div class="chart-title">Ocorrências por Estado</div>
+        <div id="chart-estados" style="width: 100%; height: 320px;"></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Evolução no Tempo</div>
+        <div id="chart-tempo" style="width: 100%; height: 320px;"></div>
+      </div>
+    </div>
+  </div>
 
 </div>
 
 <!-- BOTTOM NAV -->
 <div id="bottom-nav">
-  <div class="nav-item" data-tab="filtros">
-    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-    Filtros
+  <div class="nav-item" data-tab="sobre">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    Sobre
   </div>
   <div class="nav-item active" data-tab="mapa">
     <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -346,6 +501,10 @@
   <div class="nav-item" data-tab="ocorrencias">
     <svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
     Ocorrências
+  </div>
+  <div class="nav-item" data-tab="graficos">
+    <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    Gráficos
   </div>
 </div>
 
@@ -401,7 +560,63 @@ let todosRegistros = [];
 let marcadores = [];
 let itemAtivo = null;
 
+// ---- GRAFICOS ECHARTS ----
+let chartEstados = null;
+let chartTempo = null;
+
+function initGraficos() {
+  chartEstados = echarts.init(document.getElementById('chart-estados'));
+  chartTempo = echarts.init(document.getElementById('chart-tempo'));
+  window.addEventListener('resize', () => {
+    if (chartEstados) chartEstados.resize();
+    if (chartTempo) chartTempo.resize();
+  });
+}
+
+function atualizarGraficos(registros) {
+  if (!chartEstados || !chartTempo) return;
+
+  // 1. Gráfico por Estado
+  const contagemEstados = {};
+  registros.forEach(r => {
+    const uf = r.estado || 'Não inf.';
+    contagemEstados[uf] = (contagemEstados[uf] || 0) + 1;
+  });
+  const estadosOrdenados = Object.entries(contagemEstados).sort((a, b) => a[1] - b[1]);
+  chartEstados.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '5%', containLabel: true },
+    xAxis: { type: 'value', minInterval: 1 },
+    yAxis: { type: 'category', data: estadosOrdenados.map(e => e[0]) },
+    series: [{
+      name: 'Registros', type: 'bar', data: estadosOrdenados.map(e => e[1]),
+      itemStyle: { color: '#e9c46a', borderRadius: [0, 4, 4, 0] }
+    }]
+  });
+
+  // 2. Gráfico no Tempo
+  const contagemDatas = {};
+  registros.forEach(r => {
+    if (!r.data_registro) return;
+    const data = r.data_registro.split('T')[0];
+    contagemDatas[data] = (contagemDatas[data] || 0) + 1;
+  });
+  const datasOrdenadas = Object.keys(contagemDatas).sort();
+  chartTempo.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '5%', containLabel: true },
+    xAxis: { type: 'category', boundaryGap: false, data: datasOrdenadas.map(d => d.split('-').slice(1).reverse().join('/')) },
+    yAxis: { type: 'value', minInterval: 1 },
+    series: [{
+      name: 'Registros', type: 'line', smooth: true, data: datasOrdenadas.map(d => contagemDatas[d]),
+      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(44, 94, 138, 0.5)'}, {offset: 1, color: 'rgba(44, 94, 138, 0.1)'}]) },
+      itemStyle: { color: '#2c5e8a' }
+    }]
+  });
+}
+
 async function carregarDados() {
+  if (!chartEstados) initGraficos();
   document.getElementById('loading-spinner').style.display = 'block';
   document.getElementById('lista').innerHTML = '';
   document.getElementById('lista-empty').style.display = 'none';
@@ -490,6 +705,9 @@ function renderizar(registros) {
 
     lista.appendChild(item);
   });
+
+  // Atualiza gráficos
+  if (typeof atualizarGraficos === 'function') atualizarGraficos(registros);
 }
 
 function ativarItem(item, i) {
@@ -522,13 +740,56 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   renderizar(todosRegistros);
 });
 
-// ---- BOTTOM NAV ----
+// ---- FLOATING FILTERS TOGGLE ----
+document.getElementById('btn-toggle-filters').addEventListener('click', () => {
+  document.getElementById('floating-filters-panel').classList.toggle('open');
+});
+
+// ---- DESKTOP VIEW SWITCHER ----
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    const view = e.target.dataset.view;
+    
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('charts-view').style.display = 'none';
+    document.getElementById('sobre-view').style.display = 'none';
+    document.getElementById('floating-filters-container').style.display = 'none';
+
+    if (view === 'mapa') {
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('floating-filters-container').style.display = 'block';
+      if (typeof map !== 'undefined') map.invalidateSize();
+    } else if (view === 'graficos') {
+      document.getElementById('charts-view').style.display = 'block';
+      document.getElementById('floating-filters-container').style.display = 'block';
+      if (chartEstados) chartEstados.resize();
+      if (chartTempo) chartTempo.resize();
+    } else if (view === 'sobre') {
+      document.getElementById('sobre-view').style.display = 'block';
+    }
+  });
+});
+
+// ---- BOTTOM NAV (MOBILE) ----
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     if (window.innerWidth > 768) return;
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     item.classList.add('active');
-    document.body.className = 'tab-' + item.dataset.tab;
+    const tab = item.dataset.tab;
+    document.body.className = 'tab-' + tab;
+    
+    if (tab === 'mapa' && typeof map !== 'undefined') {
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+    if (tab === 'graficos') {
+      setTimeout(() => {
+        if (chartEstados) chartEstados.resize();
+        if (chartTempo) chartTempo.resize();
+      }, 100);
+    }
   });
 });
 if (window.innerWidth <= 768) {
