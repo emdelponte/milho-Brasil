@@ -541,11 +541,11 @@
         <div class="row-2">
           <div class="field">
             <label>Latitude</label>
-            <input type="number" id="latitude" step="0.000001" placeholder="-15.123456">
+            <input type="text" id="latitude" placeholder="-15.123456">
           </div>
           <div class="field">
             <label>Longitude</label>
-            <input type="number" id="longitude" step="0.000001" placeholder="-47.123456">
+            <input type="text" id="longitude" placeholder="-47.123456">
           </div>
         </div>
       </div>
@@ -555,11 +555,20 @@
     <div class="form-card">
       <div class="form-card-header">📎 Complemento</div>
       <div class="form-card-body">
-        <div class="field">
           <label>Foto (opcional)</label>
-          <input type="file" id="foto" accept="image/*">
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <label for="foto" class="btn-gps" style="flex: 1; text-align: center; margin: 0; background: #f3f4f6; color: #444; border-color: #d1d5db; justify-content: center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Galeria
+            </label>
+            <label for="foto-camera" class="btn-gps" style="flex: 1; text-align: center; margin: 0; justify-content: center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Tirar Foto
+            </label>
+          </div>
+          <input type="file" id="foto" accept="image/*" style="display: none;">
+          <input type="file" id="foto-camera" accept="image/*" capture="environment" style="display: none;">
           <div id="foto-preview"><img id="foto-img" src="" alt="Preview"></div>
-        </div>
         <div class="field">
           <label>Observações</label>
           <textarea id="observacoes" placeholder="Informações adicionais sobre a ocorrência..."></textarea>
@@ -696,16 +705,22 @@ btnGps.addEventListener('click', () => {
 });
 
 // ---- PREVIEW FOTO ----
-document.getElementById('foto').addEventListener('change', function() {
-  const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('foto-img').src = e.target.result;
-    document.getElementById('foto-preview').style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-});
+function handleFotoChange(e) {
+  const file = e.target.files[0];
+  if (file) {
+    if (e.target.id === 'foto') document.getElementById('foto-camera').value = '';
+    else document.getElementById('foto').value = '';
+
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('foto-img').src = ev.target.result;
+      document.getElementById('foto-preview').style.display = 'block';
+    }
+    reader.readAsDataURL(file);
+  }
+}
+document.getElementById('foto').addEventListener('change', handleFotoChange);
+document.getElementById('foto-camera').addEventListener('change', handleFotoChange);
 
 // ---- MODO EDIÇÃO ----
 let editandoId = null;
@@ -751,6 +766,7 @@ function limparFormulario() {
    'latitude','longitude','observacoes'].forEach(id => document.getElementById(id).value = '');
   ['doenca','estadio','sistema_cultivo'].forEach(id => document.getElementById(id).selectedIndex = 0);
   document.getElementById('foto').value = '';
+  document.getElementById('foto-camera').value = '';
   document.getElementById('foto-preview').style.display = 'none';
   document.getElementById('gps-status').className = '';
   document.getElementById('data_registro').value = new Date().toISOString().split('T')[0];
@@ -836,7 +852,7 @@ btnEnviar.addEventListener('click', async () => {
 
   // Upload foto (só se nova foto selecionada)
   let foto_url = null;
-  const fotoFile = document.getElementById('foto').files[0];
+  const fotoFile = document.getElementById('foto').files[0] || document.getElementById('foto-camera').files[0];
   if (fotoFile) {
     const ext  = fotoFile.name.split('.').pop();
     const path = `${session.user.id}/${Date.now()}.${ext}`;
