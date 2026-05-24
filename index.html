@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MilhoSpot - Mapa de Doenças</title>
+<title>SpotMilho - Mapa de Doenças</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -11,9 +11,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --green: #2c5e8a;
-    --green-light: #4682b4;
-    --green-pale: #e0f2fe;
+    --green: #2e7d32;
+    --green-light: #66bb6a;
+    --green-pale: #e8f5e9;
     --gold: #e9c46a;
     --dark: #1a2933;
     --gray: #6b7c8a;
@@ -62,20 +62,7 @@
   }
   .btn-registrar:hover { background: #d4a843; }
 
-  /* LAYOUT */
-  .container { display: flex; flex: 1; overflow: hidden; position: relative; }
-
-  /* SIDEBAR — desktop */
-  #sidebar {
-    width: 300px;
-    flex-shrink: 0;
-    background: white;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
-    z-index: 100;
-  }
+  /* SIDEBAR ANTIGO REMOVIDO PARA DAR LUGAR AO FLEX LAYOUT */
   .sidebar-header {
     padding: 12px 16px;
     background: #f8faf8;
@@ -177,81 +164,26 @@
   #lista-empty { padding: 30px 20px; text-align: center; color: var(--gray); font-size: 0.85rem; display: none; }
   #loading-spinner { padding: 30px 20px; text-align: center; color: var(--gray); font-size: 0.85rem; }
 
-  /* MAPA E GRÁFICOS */
-  .main-content { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background: #f0f4f0; }
+  /* LAYOUT DESKTOP 60/40 */
+  .container { display: flex; flex-direction: row; height: calc(100vh - 60px); overflow: hidden; position: relative; }
+  .left-panel { flex: 0 0 60%; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  .right-panel { flex: 0 0 40%; display: flex; flex-direction: column; border-left: 1px solid #e0e0e0; background: #f0f4f0; overflow: hidden; }
+  
   #map { flex: 1; z-index: 1; }
+  #sidebar { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: white; border-bottom: 1px solid #e0e0e0; }
+  
+  #charts-view { flex: 1; display: flex; flex-direction: column; background: white; padding: 15px; overflow-y: auto; overflow-x: hidden; }
+  .chart-tabs { display: flex; flex-wrap: wrap; border-bottom: 2px solid #e0e0e0; margin-bottom: 15px; }
+  .chart-tab { flex: 1 1 auto; text-align: center; background: none; border: none; padding: 10px 5px; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.75rem; color: #888; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .chart-tab.active { color: var(--green); border-bottom-color: var(--green); }
+  .chart-container { flex: 1; min-height: 260px; }
 
-  .view-switcher {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 1000;
-    display: flex;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    overflow: hidden;
-  }
-  .view-btn {
-    padding: 8px 16px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--gray);
-    background: white;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .view-btn.active { background: var(--green); color: white; }
-
-  #charts-view {
-    flex: 1;
-    display: none;
-    background: #f0f4f0;
-    overflow-y: auto;
-    padding: 20px;
-  }
-  .chart-container {
-    background: white;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-  .chart-title {
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    color: var(--green);
-    margin-bottom: 16px;
-    font-size: 1.05rem;
-  }
-
-  /* SOBRE VIEW */
-  #sobre-view {
-    flex: 1;
-    display: none;
-    background: #f0f4f0;
-    overflow-y: auto;
-    padding: 30px 20px;
-  }
-  .sobre-content {
-    background: white;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 24px;
-    max-width: 600px;
-    margin: 0 auto;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: #444;
-  }
-  .sobre-content h2 {
-    font-family: 'Inter', sans-serif;
-    font-size: 1.3rem;
-    color: var(--green);
-    margin-bottom: 16px;
-  }
+  /* MODAL SOBRE */
+  #sobre-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .sobre-modal-content { background: white; border-radius: var(--radius); padding: 30px; max-width: 600px; width: 100%; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .btn-close-modal { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999; }
+  .sobre-content { font-size: 0.95rem; line-height: 1.5; color: #444; }
+  .sobre-content h2 { font-family: 'Inter', sans-serif; font-size: 1.3rem; color: var(--green); margin-bottom: 16px; }
 
   /* POPUP */
   .popup-doenca { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.9rem; color: var(--green); margin-bottom: 6px; line-height: 1.3; }
@@ -347,6 +279,7 @@
 
   /* RESPONSIVE — mobile */
   @media (max-width: 768px) {
+    body:not(.tab-mapa) #floating-filters-container { display: none !important; }
     header { padding: 8px 12px; }
     .brand { font-size: 0.85rem; }
     #total-badge { padding: 3px 8px; font-size: 0.68rem; }
@@ -354,41 +287,22 @@
 
     #bottom-nav { display: flex; }
 
-    #sidebar {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      width: 100%; height: 100%;
-      border-radius: 0;
-      box-shadow: none;
-      z-index: 800;
-      display: none; /* Controlled by JS classes */
-    }
+    .container { flex-direction: column; }
+    .left-panel, .right-panel { display: none; flex: 1; flex-direction: column; width: 100%; height: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 800; background: white; }
+    #sidebar { border: none; max-height: none; }
+    
+    body.tab-ocorrencias .right-panel { display: flex; }
+    body.tab-ocorrencias #sidebar { display: flex; flex: 1; }
+    body.tab-ocorrencias #charts-view { display: none !important; }
 
-    body.tab-ocorrencias #sidebar { display: flex; }
-    body.tab-ocorrencias .main-content { display: none; }
-
-    body.tab-mapa #sidebar { display: none; }
-    body.tab-mapa .main-content { display: flex; }
+    body.tab-mapa .left-panel { display: flex; }
     body.tab-mapa #map { display: block !important; }
-    body.tab-mapa #charts-view { display: none !important; }
-    body.tab-mapa #sobre-view { display: none !important; }
 
+    body.tab-graficos .right-panel { display: flex; background: #f0f4f0; }
     body.tab-graficos #sidebar { display: none; }
-    body.tab-graficos .main-content { display: flex; }
-    body.tab-graficos #charts-view { display: block !important; }
-    body.tab-graficos #map { display: none !important; }
-    body.tab-graficos #sobre-view { display: none !important; }
-    body.tab-graficos #floating-filters-container { display: none !important; }
-
-    body.tab-sobre #sidebar { display: none; }
-    body.tab-sobre .main-content { display: flex; }
-    body.tab-sobre #sobre-view { display: block !important; }
-    body.tab-sobre #map { display: none !important; }
-    body.tab-sobre #charts-view { display: none !important; }
-    body.tab-sobre #floating-filters-container { display: none !important; }
-    body.tab-sobre #desktop-view-switcher { display: none !important; }
-
-    .view-switcher { display: none; }
+    body.tab-graficos #charts-view { display: flex !important; flex: 1; height: auto; }
+    
+    #btn-sobre-header { display: none !important; }
 
     .leaflet-legend { max-width: 160px; padding: 8px 10px; font-size: 0.68rem; }
     .leaflet-legend h4 { font-size: 0.68rem; margin-bottom: 6px; }
@@ -401,7 +315,7 @@
 <!-- SPLASH SCREEN -->
 <div id="splash-screen">
   <div class="splash-content">
-    <h1>MilhoSpot</h1>
+    <h1>SpotMilho</h1>
     <p>Mapa interativo de doenças foliares do milho no Brasil.</p>
     <button id="btn-entrar-app">Acessar o Mapa</button>
   </div>
@@ -409,83 +323,88 @@
 
 <header>
   <div class="brand">
-    🌽 MilhoSpot
+    🌽 SpotMilho
   </div>
   <div class="header-right">
+    <a href="#" id="btn-sobre-header" style="margin-right: 15px; color: white; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      Sobre o projeto
+    </a>
     <div id="total-badge">⬤ <span id="total-count">0</span> registros</div>
     <a href="app.html" class="btn-registrar">+ Registrar</a>
   </div>
 </header>
 
 <div class="container">
-
-  <!-- SIDEBAR -->
-  <div id="sidebar">
-    <div class="sidebar-header">📋 Ocorrências</div>
-    <div id="loading-spinner">Carregando...</div>
-    <div id="lista"></div>
-    <div id="lista-empty">Nenhuma ocorrência encontrada com os filtros selecionados.</div>
+  
+  <!-- FLOATING FILTERS -->
+  <div id="floating-filters-container">
+    <button id="btn-toggle-filters">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Filtros
+    </button>
+    <div id="floating-filters-panel">
+      <select class="filter-select" id="filtro-doenca">
+        <option value="">Todas as manchas</option>
+        <option value="Mancha branca (Phaeosphaeria maydis)">Mancha branca</option>
+        <option value="Mancha de Bipolaris (Bipolaris maydis)">Mancha de Bipolaris</option>
+        <option value="Mancha de turcicum (Exserohilum turcicum)">Mancha de turcicum</option>
+      </select>
+      <select class="filter-select" id="filtro-safra">
+        <option value="">Todas as safras</option>
+        <option>Safra 2025/26</option>
+        <option>Safrinha 2026</option>
+        <option>Terceira Safra 2026</option>
+      </select>
+      <button class="btn-clear" id="btn-clear">Limpar filtros</button>
+    </div>
   </div>
 
-  <!-- CONTEUDO PRINCIPAL -->
-  <div class="main-content">
-    
-    <!-- FLOATING FILTERS -->
-    <div id="floating-filters-container">
-      <button id="btn-toggle-filters">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        Filtros
-      </button>
-      <div id="floating-filters-panel">
-        <select class="filter-select" id="filtro-doenca">
-          <option value="">Todas as manchas</option>
-          <option value="Mancha branca (Phaeosphaeria maydis)">Mancha branca</option>
-          <option value="Mancha de Bipolaris (Bipolaris maydis)">Mancha de Bipolaris</option>
-          <option value="Mancha de turcicum (Exserohilum turcicum)">Mancha de turcicum</option>
-        </select>
-        <select class="filter-select" id="filtro-safra">
-          <option value="">Todas as safras</option>
-          <option>Safra 2025/26</option>
-          <option>Safrinha 2026</option>
-          <option>Terceira Safra 2026</option>
-        </select>
-        <button class="btn-clear" id="btn-clear">Limpar filtros</button>
-      </div>
-    </div>
-
-    <!-- SWITCHER DESKTOP -->
-    <div class="view-switcher" id="desktop-view-switcher">
-      <button class="view-btn active" data-view="mapa">Mapa</button>
-      <button class="view-btn" data-view="graficos">Gráficos</button>
-      <button class="view-btn" data-view="sobre">Sobre</button>
-    </div>
-    
+  <div class="left-panel">
     <!-- MAPA -->
     <div id="map"></div>
-    
-    <!-- SOBRE VIEW -->
-    <div id="sobre-view">
-      <div class="sobre-content">
-        <h2>Sobre o Projeto</h2>
-        <p>A ferramenta é desenvolvida pela <strong>Rede Fitossanidade Tropical</strong>, que conta com uma rede de pesquisadores e consultores para o monitoramento de doenças do milho.</p>
-        <br>
-        <p><em>(O texto completo será atualizado futuramente)</em></p>
-      </div>
-    </div>
+  </div>
 
-    <!-- GRAFICOS -->
+  <div class="right-panel">
+    <div id="sidebar">
+      <div class="sidebar-header" style="background:#f8faf8;">📋 Ocorrências</div>
+      <div id="loading-spinner">Carregando...</div>
+      <div id="lista"></div>
+      <div id="lista-empty">Nenhuma ocorrência encontrada.</div>
+    </div>
+    
     <div id="charts-view">
-      <div class="chart-container">
-        <div class="chart-title">Ocorrências por Estado</div>
-        <div id="chart-estados" style="width: 100%; height: 320px;"></div>
+      <div class="chart-tabs">
+        <button class="chart-tab active" data-chart="estadio">POR ESTÁDIO</button>
+        <button class="chart-tab" data-chart="estado">POR ESTADO</button>
+        <button class="chart-tab" data-chart="tempo">ACUMULADO POR DATA</button>
       </div>
-      <div class="chart-container">
-        <div class="chart-title">Evolução no Tempo</div>
-        <div id="chart-tempo" style="width: 100%; height: 320px;"></div>
+      
+      <div class="chart-container active" id="cc-estadio">
+        <div id="chart-estadio" style="width: 100%; height: 260px;"></div>
+      </div>
+      <div class="chart-container" id="cc-estado" style="display:none;">
+        <div id="chart-estados" style="width: 100%; height: 260px;"></div>
+      </div>
+      <div class="chart-container" id="cc-tempo" style="display:none;">
+        <div id="chart-tempo" style="width: 100%; height: 260px;"></div>
       </div>
     </div>
   </div>
 
+</div>
+
+<!-- MODAL SOBRE -->
+<div id="sobre-modal">
+  <div class="sobre-modal-content">
+    <button class="btn-close-modal" id="btn-close-modal">×</button>
+    <div class="sobre-content">
+      <h2>Sobre o Projeto</h2>
+      <p>A ferramenta é desenvolvida pela <strong>Rede Fitossanidade Tropical</strong>, que conta com uma rede de pesquisadores e consultores para o monitoramento de doenças do milho.</p>
+      <br>
+      <p><em>(O texto completo será atualizado futuramente)</em></p>
+    </div>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -516,8 +435,8 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ---- MAPA ----
 const map = L.map('map').setView([-15.5, -52], 5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   maxZoom: 18
 }).addTo(map);
 
@@ -563,18 +482,21 @@ let itemAtivo = null;
 // ---- GRAFICOS ECHARTS ----
 let chartEstados = null;
 let chartTempo = null;
+let chartEstadio = null;
 
 function initGraficos() {
   chartEstados = echarts.init(document.getElementById('chart-estados'));
   chartTempo = echarts.init(document.getElementById('chart-tempo'));
+  chartEstadio = echarts.init(document.getElementById('chart-estadio'));
   window.addEventListener('resize', () => {
     if (chartEstados) chartEstados.resize();
     if (chartTempo) chartTempo.resize();
+    if (chartEstadio) chartEstadio.resize();
   });
 }
 
 function atualizarGraficos(registros) {
-  if (!chartEstados || !chartTempo) return;
+  if (!chartEstados || !chartTempo || !chartEstadio) return;
 
   // 1. Gráfico por Estado
   const contagemEstados = {};
@@ -590,7 +512,7 @@ function atualizarGraficos(registros) {
     yAxis: { type: 'category', data: estadosOrdenados.map(e => e[0]) },
     series: [{
       name: 'Registros', type: 'bar', data: estadosOrdenados.map(e => e[1]),
-      itemStyle: { color: '#e9c46a', borderRadius: [0, 4, 4, 0] }
+      itemStyle: { color: '#388e3c', borderRadius: [0, 4, 4, 0] }
     }]
   });
 
@@ -609,8 +531,26 @@ function atualizarGraficos(registros) {
     yAxis: { type: 'value', minInterval: 1 },
     series: [{
       name: 'Registros', type: 'line', smooth: true, data: datasOrdenadas.map(d => contagemDatas[d]),
-      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(44, 94, 138, 0.5)'}, {offset: 1, color: 'rgba(44, 94, 138, 0.1)'}]) },
-      itemStyle: { color: '#2c5e8a' }
+      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(56, 142, 60, 0.5)'}, {offset: 1, color: 'rgba(56, 142, 60, 0.05)'}]) },
+      itemStyle: { color: '#2e7d32' }
+    }]
+  });
+
+  // 3. Gráfico por Estádio
+  const contagemEstadios = {};
+  registros.forEach(r => {
+    const est = r.estadio || 'Não inf.';
+    contagemEstadios[est] = (contagemEstadios[est] || 0) + 1;
+  });
+  const estadiosOrdenados = Object.entries(contagemEstadios).sort((a, b) => a[0].localeCompare(b[0]));
+  chartEstadio.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '5%', containLabel: true },
+    xAxis: { type: 'category', data: estadiosOrdenados.map(e => e[0]), axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: 'value', minInterval: 1 },
+    series: [{
+      name: 'Registros', type: 'bar', data: estadiosOrdenados.map(e => e[1]),
+      itemStyle: { color: '#66bb6a', borderRadius: [4, 4, 0, 0] }
     }]
   });
 }
@@ -745,30 +685,27 @@ document.getElementById('btn-toggle-filters').addEventListener('click', () => {
   document.getElementById('floating-filters-panel').classList.toggle('open');
 });
 
-// ---- DESKTOP VIEW SWITCHER ----
-document.querySelectorAll('.view-btn').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-    e.target.classList.add('active');
-    const view = e.target.dataset.view;
-    
-    document.getElementById('map').style.display = 'none';
-    document.getElementById('charts-view').style.display = 'none';
-    document.getElementById('sobre-view').style.display = 'none';
-    document.getElementById('floating-filters-container').style.display = 'none';
+// ---- SOBRE MODAL ----
+function openSobre() { document.getElementById('sobre-modal').style.display = 'flex'; }
+function closeSobre() { document.getElementById('sobre-modal').style.display = 'none'; }
+document.getElementById('btn-sobre-header').addEventListener('click', (e) => { e.preventDefault(); openSobre(); });
+document.getElementById('btn-close-modal').addEventListener('click', closeSobre);
 
-    if (view === 'mapa') {
-      document.getElementById('map').style.display = 'block';
-      document.getElementById('floating-filters-container').style.display = 'block';
-      if (typeof map !== 'undefined') map.invalidateSize();
-    } else if (view === 'graficos') {
-      document.getElementById('charts-view').style.display = 'block';
-      document.getElementById('floating-filters-container').style.display = 'block';
+// ---- CHART TABS ----
+document.querySelectorAll('.chart-tab').forEach(tab => {
+  tab.addEventListener('click', (e) => {
+    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.chart-container').forEach(c => c.style.display = 'none');
+    e.target.classList.add('active');
+    const chartId = 'cc-' + e.target.dataset.chart;
+    document.getElementById(chartId).style.display = 'block';
+    
+    // Resize charts after display change
+    setTimeout(() => {
+      if (chartEstadio) chartEstadio.resize();
       if (chartEstados) chartEstados.resize();
       if (chartTempo) chartTempo.resize();
-    } else if (view === 'sobre') {
-      document.getElementById('sobre-view').style.display = 'block';
-    }
+    }, 50);
   });
 });
 
@@ -776,9 +713,15 @@ document.querySelectorAll('.view-btn').forEach(btn => {
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     if (window.innerWidth > 768) return;
+    const tab = item.dataset.tab;
+    
+    if (tab === 'sobre') {
+      openSobre();
+      return; // Don't change active state for other tabs
+    }
+
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     item.classList.add('active');
-    const tab = item.dataset.tab;
     document.body.className = 'tab-' + tab;
     
     if (tab === 'mapa' && typeof map !== 'undefined') {
@@ -786,6 +729,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     }
     if (tab === 'graficos') {
       setTimeout(() => {
+        if (chartEstadio) chartEstadio.resize();
         if (chartEstados) chartEstados.resize();
         if (chartTempo) chartTempo.resize();
       }, 100);
