@@ -637,7 +637,11 @@ function showForm(user) {
   btnLogout.style.display = 'block';
   const bar = document.getElementById('user-bar');
   bar.style.display = 'block';
-  document.getElementById('user-email-display').textContent = user.email;
+  
+  const isAdmin = user.email === 'edelponte@gmail.com' || user.user_metadata?.role === 'admin' || user.user_metadata?.is_admin === true;
+  const adminLink = isAdmin ? ' <a href="admin.html" style="margin-left: 10px; color: var(--gold); font-weight: 700; text-decoration: underline;">[Painel Admin]</a>' : '';
+  
+  document.getElementById('user-email-display').innerHTML = user.email + adminLink;
   document.getElementById('section-meus-registros').style.display = 'block';
   carregarMeusRegistros(user.id);
 }

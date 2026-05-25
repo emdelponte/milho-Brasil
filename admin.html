@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpotMilho - Painel Administrativo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #2c5e8a; /* Steel Blue do app.html */
+    --primary-light: #4682b4;
+    --primary-pale: #e0f2fe;
+    --gold: #e9c46a;
+    --gold-dark: #d4a843;
+    --dark: #1a2933;
+    --gray: #6b7c8a;
+    --gray-light: #f3f4f6;
+    --white: #ffffff;
+    --red: #e63946;
+    --red-pale: #fee2e2;
+    --green: #2e7d32;
+    --green-pale: #e8f5e9;
+    --radius: 12px;
+    --shadow: 0 10px 30px rgba(0,0,0,0.08);
+    --shadow-sm: 0 4px 12px rgba(0,0,0,0.05);
+    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f0f4f0;
+    min-height: 100vh;
+    color: var(--dark);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    z-index: 10;
+  }
+  header .brand {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    display: flex;
+    flex-direction: column;
+  }
+  header .brand span {
+    font-size: 0.72rem;
+    font-weight: 500;
+    opacity: 0.85;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-top: 2px;
+  }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-header {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 7px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: var(--transition);
+    text-decoration: none;
+  }
+  .btn-header:hover { background: rgba(255,255,255,0.25); }
+  #btn-logout { display: none; background: rgba(230, 57, 70, 0.2); border-color: rgba(230, 57, 70, 0.4); }
+  #btn-logout:hover { background: rgba(230, 57, 70, 0.4); }
+
+  /* ---- MAIN ---- */
+  main {
+    max-width: 650px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+    width: 100%;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- CARDS ---- */
+  .admin-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    box-shadow: var(--shadow);
+    border-top: 4px solid var(--primary);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .login-header, .panel-header {
+    margin-bottom: 24px;
+  }
+  .admin-card h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+  .admin-card p {
+    color: var(--gray);
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  /* ---- SECTIONS DISPLAY ---- */
+  #section-login { display: block; animation: fadeIn 0.4s ease; margin-top: 40px; }
+  #section-panel { display: none; animation: fadeIn 0.4s ease; }
+
+  /* ---- FORM ELEMENTS ---- */
+  .field {
+    margin-bottom: 20px;
+    position: relative;
+  }
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  label .req { color: var(--red); margin-left: 2px; }
+  
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  input[type="email"],
+  input[type="password"],
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.8px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: var(--dark);
+    background: white;
+    transition: var(--transition);
+  }
+  
+  input:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(70,130,180,0.15);
+  }
+
+  /* Password field extra action */
+  .password-input {
+    padding-right: 85px !important;
+  }
+  .input-action-btn {
+    position: absolute;
+    right: 8px;
+    background: var(--primary-pale);
+    color: var(--primary);
+    border: none;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    transition: var(--transition);
+  }
+  .input-action-btn:hover {
+    background: var(--primary-light);
+    color: white;
+  }
+
+  .password-strength-meter {
+    height: 4px;
+    background: #e2e8f0;
+    margin-top: 6px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .password-strength-bar {
+    height: 100%;
+    width: 0;
+    background: var(--red);
+    transition: var(--transition);
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(44,94,138,0.2);
+  }
+  .btn-primary:hover {
+    background: #1f4567;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(44,94,138,0.3);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; box-shadow: none; transform: none; }
+
+  .actions-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .btn-cancel {
+    flex: 1;
+    padding: 14px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+  }
+  .btn-cancel:hover {
+    background: #e2e8f0;
+  }
+
+  /* ---- STATE BARS & ALERTS ---- */
+  .alert-box {
+    display: none;
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    font-weight: 500;
+    animation: slideDown 0.3s ease;
+  }
+  .alert-box.error {
+    background: var(--red-pale);
+    color: var(--red);
+    border-left: 4px solid var(--red);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .alert-box.success {
+    background: var(--green-pale);
+    color: var(--green);
+    border-left: 4px solid var(--green);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .alert-box svg { flex-shrink: 0; margin-top: 2px; }
+
+  #user-status-bar {
+    display: none;
+    background: var(--primary-pale);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-size: 0.82rem;
+    color: var(--primary);
+    font-family: 'DM Mono', monospace;
+    align-items: center;
+    justify-content: space-between;
+    animation: fadeIn 0.4s ease;
+  }
+  #user-status-bar span { display: flex; align-items: center; gap: 6px; }
+
+  /* ---- SPINNER ---- */
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 10px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- KEY DETAILS DRAWER ---- */
+  #success-details {
+    display: none;
+    background: #fafbfc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    animation: fadeIn 0.3s ease;
+  }
+  #success-details h4 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+  .detail-row:last-child { margin-bottom: 0; }
+  .detail-row span:first-child { color: var(--gray); font-weight: 500; }
+  .detail-row span:last-child { font-family: 'DM Mono', monospace; color: var(--dark); font-weight: 600; word-break: break-all; text-align: right; max-width: 70%; }
+  
+  .copy-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: var(--transition);
+  }
+  .copy-btn:hover { background: var(--primary-pale); }
+
+  /* ---- COLABORADORES LIST ---- */
+  .colab-item {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    transition: var(--transition);
+  }
+  .colab-item:hover {
+    border-color: var(--primary-light);
+    background: #ffffff;
+    box-shadow: var(--shadow-sm);
+  }
+  .colab-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .colab-name {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .colab-email {
+    font-size: 0.82rem;
+    color: var(--gray);
+    font-family: 'DM Mono', monospace;
+    margin-top: 2px;
+  }
+  .colab-dates {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .colab-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-action-small {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: var(--transition);
+  }
+  .btn-action-small:hover {
+    background: var(--primary-pale);
+    color: var(--primary);
+    border-color: var(--primary-light);
+  }
+  .btn-delete-small {
+    color: var(--red);
+    border-color: #fca5a5;
+    background: #fee2e2;
+  }
+  .btn-delete-small:hover {
+    background: var(--red);
+    color: white;
+    border-color: var(--red);
+  }
+
+  /* ---- SEARCH BOX ---- */
+  .search-container {
+    display: flex;
+    align-items: center;
+    border: 1.8px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    padding: 0 12px;
+    transition: var(--transition);
+  }
+  .search-container:focus-within {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(70,130,180,0.15);
+  }
+  .search-container input {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 10px 4px !important;
+    background: transparent;
+  }
+
+  /* ---- EDIT MODE INDICATOR BANNER ---- */
+  #edit-mode-banner {
+    display: none;
+    background: #fff7e6;
+    border: 1.5px solid #e9c46a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-size: 0.85rem;
+    color: #7a5c00;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ---- ANIMATIONS ---- */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 580px) {
+    .colab-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .colab-actions { width: 100%; justify-content: flex-end; }
+    .admin-card { padding: 24px 20px; }
+    main { padding-top: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    🌽 SpotMilho
+    <span>Painel Admin</span>
+  </div>
+  <div class="header-actions">
+    <a href="https://emdelponte.github.io/milho-Brasil/" class="btn-header">Mapa</a>
+    <a href="app.html" class="btn-header">Registrar</a>
+    <button id="btn-logout" class="btn-header">Sair</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- SEÇÃO 1: LOGIN ADMINISTRATIVO -->
+  <section id="section-login">
+    <div class="admin-card">
+      <div class="login-header">
+        <h2>Acesso Administrativo</h2>
+        <p>Apenas administradores autorizados do sistema SpotMilho podem gerenciar usuários.</p>
+      </div>
+
+      <div id="login-alert" class="alert-box"></div>
+
+      <div class="field">
+        <label>E-mail do Administrador <span class="req">*</span></label>
+        <input type="email" id="login-email" placeholder="admin@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Senha <span class="req">*</span></label>
+        <input type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" id="btn-login">Entrar no Painel</button>
+    </div>
+  </section>
+
+  <!-- SEÇÃO 2: PAINEL DE CADASTRO E LISTAGEM -->
+  <section id="section-panel">
+    <div id="user-status-bar">
+      <span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        Admin: <strong id="admin-email-display"></strong>
+      </span>
+      <span style="font-size:0.75rem; background:rgba(233,196,106,0.2); color:#b48608; padding:2px 8px; border-radius:12px; font-weight:600;">Conexão Segura</span>
+    </div>
+
+    <!-- CARD DO FORMULÁRIO (CADASTRAR / EDITAR) -->
+    <div class="admin-card">
+      <div class="panel-header">
+        <h2 id="form-title">Cadastrar Colaborador</h2>
+        <p id="form-subtitle">Preencha os dados abaixo para registrar um novo usuário com acesso direto à inserção de ocorrências.</p>
+      </div>
+
+      <div id="panel-alert" class="alert-box"></div>
+
+      <div id="edit-mode-banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>Você está editando o colaborador. Deixe o campo senha em branco se não quiser alterá-la.</span>
+      </div>
+
+      <form id="form-create-user" onsubmit="event.preventDefault();">
+        <div class="field">
+          <label>Nome do Colaborador (Observador) <span class="req">*</span></label>
+          <input type="text" id="new-name" placeholder="Ex: Dr. Carlos Silva" required>
+        </div>
+
+        <div class="field">
+          <label>E-mail <span class="req">*</span></label>
+          <input type="email" id="new-email" placeholder="colaborador@email.com" autocomplete="username" required>
+        </div>
+
+        <div class="field">
+          <label id="label-password">Senha de Acesso <span class="req">*</span></label>
+          <div class="input-wrapper">
+            <input type="password" id="new-password" class="password-input" placeholder="Min. 6 caracteres" autocomplete="new-password" required>
+            <button type="button" class="input-action-btn" id="btn-generate-password" style="right: 50px; font-size: 0.65rem; padding: 5px 6px;">Gerar</button>
+            <button type="button" class="input-action-btn" id="btn-toggle-password" style="font-size: 0.65rem; padding: 5px 6px;">Ver</button>
+          </div>
+          <div class="password-strength-meter">
+            <div class="password-strength-bar" id="password-strength-bar"></div>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <button type="button" class="btn-cancel" id="btn-cancel-edit" style="display:none;">Cancelar Edição</button>
+          <button type="submit" class="btn-primary" id="btn-create" style="flex:2;">
+            Cadastrar e Ativar Usuário
+          </button>
+        </div>
+      </form>
+
+      <!-- CARD DETALHES SUCESSO -->
+      <div id="success-details">
+        <h4>✓ Operação Realizada com Sucesso!</h4>
+        <div class="detail-row">
+          <span>Nome:</span>
+          <span id="detail-name"></span>
+        </div>
+        <div class="detail-row">
+          <span>E-mail:</span>
+          <span id="detail-email"></span>
+        </div>
+        <div class="detail-row" id="row-detail-password">
+          <span>Senha:</span>
+          <span>
+            <span id="detail-password" style="margin-right: 8px;"></span>
+            <button class="copy-btn" id="btn-copy-password">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copiar
+            </button>
+          </span>
+        </div>
+        <div style="font-size:0.75rem; color:var(--gray); margin-top:12px; font-style:italic; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+          * O e-mail foi confirmado automaticamente no Supabase. O colaborador já pode fazer login na página de registros e começar a enviar dados.
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD DA LISTAGEM DE USUÁRIOS -->
+    <div class="admin-card" style="border-top-color: var(--gold);">
+      <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+        <div>
+          <h2>Colaboradores Cadastrados</h2>
+          <p>Lista completa de observadores com acesso de envio.</p>
+        </div>
+        <button class="btn-header" id="btn-reload-users" style="color: var(--primary); background: var(--primary-pale); border-color: var(--primary-light);">
+          🔄 Atualizar
+        </button>
+      </div>
+
+      <!-- Barra de Pesquisa -->
+      <div class="field" style="margin-bottom: 18px;">
+        <div class="search-container">
+          <span style="color: var(--gray); font-size: 0.95rem;">🔍</span>
+          <input type="text" id="search-users" placeholder="Buscar por nome ou e-mail...">
+        </div>
+      </div>
+
+      <!-- Estados de Carregamento/Vazio -->
+      <div id="users-list-loading" style="text-align: center; padding: 30px; color: var(--gray); display: none;">
+        <span class="spinner" style="border-top-color: var(--primary);"></span> Carregando lista...
+      </div>
+      <div id="users-list-empty" style="text-align: center; padding: 30px; color: var(--gray); display: none;">
+        Nenhum colaborador encontrado.
+      </div>
+
+      <!-- Lista Dinâmica -->
+      <div id="users-list-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const SUPABASE_URL = 'https://kpaaxzthgmooekgbbidk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwYWF4enRoZ21vb2VrZ2JiaWRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTMwNTIsImV4cCI6MjA5NDk2OTA1Mn0.oAXNmhRXb08WK6E6345Xoa96lV2-9d0djzvb1jb8_pU';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ---- ELEMENTOS DE SEÇÃO ----
+const secLogin   = document.getElementById('section-login');
+const secPanel   = document.getElementById('section-panel');
+const btnLogin   = document.getElementById('btn-login');
+const btnLogout  = document.getElementById('btn-logout');
+const adminEmail = document.getElementById('admin-email-display');
+
+// ---- ELEMENTOS DO FORMULÁRIO ----
+const formCreate         = document.getElementById('form-create-user');
+const formTitle          = document.getElementById('form-title');
+const formSubtitle       = document.getElementById('form-subtitle');
+const btnCreate          = document.getElementById('btn-create');
+const btnCancelEdit      = document.getElementById('btn-cancel-edit');
+const editBanner         = document.getElementById('edit-mode-banner');
+const labelPassword      = document.getElementById('label-password');
+
+const btnGenPassword     = document.getElementById('btn-generate-password');
+const btnTogglePassword  = document.getElementById('btn-toggle-password');
+const newPasswordInput   = document.getElementById('new-password');
+const newEmailInput      = document.getElementById('new-email');
+const newNameInput       = document.getElementById('new-name');
+
+// ---- ELEMENTOS DE DETALHE ----
+const successDetails     = document.getElementById('success-details');
+const detailName         = document.getElementById('detail-name');
+const detailEmail        = document.getElementById('detail-email');
+const detailPassword     = document.getElementById('detail-password');
+const rowDetailPassword  = document.getElementById('row-detail-password');
+const btnCopyPassword    = document.getElementById('btn-copy-password');
+
+// ---- ELEMENTOS DE LISTAGEM ----
+const btnReloadUsers     = document.getElementById('btn-reload-users');
+const searchUsersInput   = document.getElementById('search-users');
+const usersListLoading   = document.getElementById('users-list-loading');
+const usersListEmpty     = document.getElementById('users-list-empty');
+const usersListContainer = document.getElementById('users-list-container');
+
+// ---- ESTADO GLOBAL DO PAINEL ----
+let editUserId = null; // Se preenchido, estamos editando este ID
+let loadedUsers = []; // Cache dos colaboradores carregados
+
+// ---- EXIBIÇÃO DE ALERTAS ----
+function showAlert(msg, type = 'error', target = 'panel') {
+  const el = document.getElementById(`${target}-alert`);
+  el.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:2px;">
+      ${type === 'error' 
+        ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' 
+        : '<polyline points="20 6 9 17 4 12"/>'}
+    </svg>
+    <span>${msg}</span>
+  `;
+  el.className = `alert-box ${type}`;
+  el.style.display = 'flex';
+}
+
+function hideAlert(target = 'panel') {
+  const el = document.getElementById(`${target}-alert`);
+  el.style.display = 'none';
+}
+
+// ---- CONTROLE DE SESSÃO ----
+async function checkSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    showPanel(session.user);
+  } else {
+    showLogin();
+  }
+}
+
+function showLogin() {
+  secLogin.style.display = 'block';
+  secPanel.style.display = 'none';
+  btnLogout.style.display = 'none';
+}
+
+function showPanel(user) {
+  secLogin.style.display = 'none';
+  secPanel.style.display = 'block';
+  btnLogout.style.display = 'block';
+  adminEmail.textContent = user.email;
+  carregarUsuarios();
+}
+
+// ---- EVENTO LOGIN ----
+btnLogin.addEventListener('click', async () => {
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  
+  if (!email || !senha) {
+    showAlert('Preencha e-mail e senha.', 'error', 'login');
+    return;
+  }
+  
+  btnLogin.disabled = true;
+  btnLogin.innerHTML = '<span class="spinner"></span>Entrando...';
+  hideAlert('login');
+  
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+  
+  if (error) {
+    showAlert('Falha na autenticação: E-mail ou senha incorretos.', 'error', 'login');
+    btnLogin.disabled = false;
+    btnLogin.textContent = 'Entrar no Painel';
+  } else {
+    showPanel(data.user);
+    btnLogin.disabled = false;
+    btnLogin.textContent = 'Entrar no Painel';
+  }
+});
+
+document.getElementById('login-senha').addEventListener('keydown', e => {
+  if (e.key === 'Enter') btnLogin.click();
+});
+
+// ---- EVENTO LOGOUT ----
+btnLogout.addEventListener('click', async () => {
+  await sb.auth.signOut();
+  showLogin();
+});
+
+// ---- GERENCIAMENTO DE CARREGAMENTO / RENDERING DE USUÁRIOS ----
+async function carregarUsuarios() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  usersListLoading.style.display = 'block';
+  usersListEmpty.style.display = 'none';
+  usersListContainer.innerHTML = '';
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_KEY
+      },
+      body: JSON.stringify({ action: 'list' })
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao carregar lista de usuários.');
+
+    loadedUsers = result.users || [];
+    filtrarERenderizarUsuarios();
+
+  } catch (err) {
+    showAlert(`Erro ao listar colaboradores: ${err.message}`, 'error', 'panel');
+  } finally {
+    usersListLoading.style.display = 'none';
+  }
+}
+
+function filtrarERenderizarUsuarios() {
+  const searchTerm = searchUsersInput.value.trim().toLowerCase();
+  const filtered = loadedUsers.filter(u => {
+    return (u.email?.toLowerCase().includes(searchTerm) || 
+            u.nome_observador?.toLowerCase().includes(searchTerm));
+  });
+
+  usersListContainer.innerHTML = '';
+
+  if (filtered.length === 0) {
+    usersListEmpty.style.display = 'block';
+    return;
+  }
+  usersListEmpty.style.display = 'none';
+
+  filtered.forEach(u => {
+    const item = document.createElement('div');
+    item.className = 'colab-item';
+    
+    const criacao = u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—';
+    const ultimoAcesso = u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('pt-BR') + ' ' + new Date(u.last_sign_in_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : 'Nunca acessou';
+
+    item.innerHTML = `
+      <div class="colab-info">
+        <div class="colab-name">${u.nome_observador || 'Sem Nome'}</div>
+        <div class="colab-email">${u.email}</div>
+        <div class="colab-dates">
+          <span>📅 Cadastrado em: <strong>${criacao}</strong></span>
+          <span>🔑 Último acesso: <strong>${ultimoAcesso}</strong></span>
+        </div>
+      </div>
+      <div class="colab-actions">
+        <button class="btn-action-small btn-edit" data-id="${u.id}">✏️ Editar</button>
+        <button class="btn-action-small btn-action-small btn-delete-small btn-delete" data-id="${u.id}">🗑️ Excluir</button>
+      </div>
+    `;
+
+    // Eventos locais dos botões
+    item.querySelector('.btn-edit').addEventListener('click', () => entrarModoEdicao(u));
+    item.querySelector('.btn-delete').addEventListener('click', () => excluirUsuario(u));
+
+    usersListContainer.appendChild(item);
+  });
+}
+
+searchUsersInput.addEventListener('input', filtrarERenderizarUsuarios);
+btnReloadUsers.addEventListener('click', carregarUsuarios);
+
+// ---- FLUXO EDICAO ----
+function entrarModoEdicao(user) {
+  editUserId = user.id;
+  
+  // Preenche formulário
+  newNameInput.value = user.nome_observador || '';
+  newEmailInput.value = user.email || '';
+  newPasswordInput.value = '';
+  newPasswordInput.required = false; // Senha passa a ser opcional
+
+  // Ajustes de interface
+  formTitle.textContent = 'Editar Colaborador';
+  formSubtitle.textContent = 'Atualize as informações do observador selecionado. Deixe a senha em branco se não quiser mudá-la.';
+  labelPassword.innerHTML = 'Senha de Acesso <span style="font-size:0.7rem; color:var(--gray); text-transform:none;">(Opcional - deixe em branco para manter)</span>';
+  
+  btnCancelEdit.style.display = 'block';
+  editBanner.style.display = 'flex';
+  btnCreate.textContent = 'Salvar Alterações';
+  
+  successDetails.style.display = 'none';
+  hideAlert('panel');
+  
+  // Rolar até o topo do formulário suavemente
+  formCreate.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function sairModoEdicao() {
+  editUserId = null;
+  
+  // Limpar formulário
+  newNameInput.value = '';
+  newEmailInput.value = '';
+  newPasswordInput.value = '';
+  newPasswordInput.required = true;
+
+  // Restaurar textos e UI
+  formTitle.textContent = 'Cadastrar Colaborador';
+  formSubtitle.textContent = 'Preencha os dados abaixo para registrar um novo usuário com acesso direto à inserção de ocorrências.';
+  labelPassword.innerHTML = 'Senha de Acesso <span class="req">*</span>';
+  
+  btnCancelEdit.style.display = 'none';
+  editBanner.style.display = 'none';
+  btnCreate.textContent = 'Cadastrar e Ativar Usuário';
+  document.getElementById('password-strength-bar').style.width = '0';
+  hideAlert('panel');
+}
+
+btnCancelEdit.addEventListener('click', sairModoEdicao);
+
+// ---- AÇÃO DE EXCLUSÃO ----
+async function excluirUsuario(user) {
+  const confirmacao = confirm(`ATENÇÃO!\nTem certeza que deseja excluir permanentemente o colaborador "${user.nome_observador}" (${user.email})?\nEsta ação não poderá ser desfeita e ele perderá o acesso imediatamente.`);
+  if (!confirmacao) return;
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_KEY
+      },
+      body: JSON.stringify({
+        action: 'delete',
+        user_id: user.id
+      })
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao excluir colaborador.');
+
+    showAlert('Colaborador excluído com sucesso!', 'success', 'panel');
+    
+    // Se estava editando o mesmo usuário que foi excluído, cancela edição
+    if (editUserId === user.id) {
+      sairModoEdicao();
+    }
+    
+    carregarUsuarios();
+
+  } catch (err) {
+    showAlert(`Erro: ${err.message}`, 'error', 'panel');
+  }
+}
+
+// ---- SUBMIT DO FORMULÁRIO (CADASTRAR OU ATUALIZAR) ----
+formCreate.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    showAlert('Sessão expirada. Faça login novamente.', 'error', 'panel');
+    showLogin();
+    return;
+  }
+
+  const name = newNameInput.value.trim();
+  const email = newEmailInput.value.trim();
+  const password = newPasswordInput.value;
+
+  if (!name || !email) {
+    showAlert('Preencha os campos Nome e E-mail.', 'error', 'panel');
+    return;
+  }
+
+  // Se não estiver editando, senha é obrigatória
+  if (!editUserId && !password) {
+    showAlert('A senha é obrigatória para novos cadastros.', 'error', 'panel');
+    return;
+  }
+
+  if (password && password.length < 6) {
+    showAlert('A senha deve conter no mínimo 6 caracteres.', 'error', 'panel');
+    return;
+  }
+
+  btnCreate.disabled = true;
+  btnCreate.innerHTML = `<span class="spinner"></span>${editUserId ? 'Salvando...' : 'Criando Usuário...'}`;
+  hideAlert('panel');
+  successDetails.style.display = 'none';
+
+  try {
+    const payload = {
+      action: editUserId ? 'update' : 'create',
+      email: email,
+      nome_observador: name
+    };
+    
+    if (editUserId) {
+      payload.user_id = editUserId;
+    }
+    if (password) {
+      payload.password = password;
+    }
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Ocorreu um erro ao processar a requisição.');
+    }
+
+    // Sucesso!
+    showAlert(editUserId ? 'Colaborador atualizado com sucesso!' : 'Colaborador cadastrado com sucesso!', 'success', 'panel');
+    
+    // Detalhes no Card
+    detailName.textContent = result.user.nome_observador;
+    detailEmail.textContent = result.user.email;
+    
+    if (password) {
+      detailPassword.textContent = password;
+      rowDetailPassword.style.display = 'flex';
+    } else {
+      rowDetailPassword.style.display = 'none';
+    }
+    
+    successDetails.style.display = 'block';
+
+    if (editUserId) {
+      sairModoEdicao();
+    } else {
+      // Limpa campos se for criação
+      newNameInput.value = '';
+      newEmailInput.value = '';
+      newPasswordInput.value = '';
+      document.getElementById('password-strength-bar').style.width = '0';
+    }
+
+    // Atualiza lista
+    carregarUsuarios();
+
+  } catch (err) {
+    showAlert(`Erro: ${err.message}`, 'error', 'panel');
+  } finally {
+    btnCreate.disabled = false;
+    btnCreate.textContent = editUserId ? 'Salvar Alterações' : 'Cadastrar e Ativar Usuário';
+  }
+});
+
+// ---- AUXILIARES DE SENHA ----
+function generateRandomPassword() {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*()_+-=';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+btnGenPassword.addEventListener('click', () => {
+  const password = generateRandomPassword();
+  newPasswordInput.value = password;
+  newPasswordInput.type = 'text';
+  btnTogglePassword.textContent = 'Ocultar';
+  checkPasswordStrength(password);
+  hideAlert('panel');
+});
+
+btnTogglePassword.addEventListener('click', () => {
+  if (newPasswordInput.type === 'password') {
+    newPasswordInput.type = 'text';
+    btnTogglePassword.textContent = 'Ocultar';
+  } else {
+    newPasswordInput.type = 'password';
+    btnTogglePassword.textContent = 'Ver';
+  }
+});
+
+newPasswordInput.addEventListener('input', (e) => {
+  checkPasswordStrength(e.target.value);
+});
+
+function checkPasswordStrength(val) {
+  const bar = document.getElementById('password-strength-bar');
+  if (val.length === 0) {
+    bar.style.width = '0';
+    return;
+  }
+  
+  let score = 0;
+  if (val.length >= 6) score++;
+  if (val.length >= 10) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  
+  if (score <= 1) {
+    bar.style.width = '20%';
+    bar.style.background = 'var(--red)';
+  } else if (score <= 3) {
+    bar.style.width = '60%';
+    bar.style.background = 'var(--gold-dark)';
+  } else {
+    bar.style.width = '100%';
+    bar.style.background = 'var(--green)';
+  }
+}
+
+btnCopyPassword.addEventListener('click', () => {
+  const pwdText = detailPassword.textContent;
+  navigator.clipboard.writeText(pwdText).then(() => {
+    btnCopyPassword.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Copiado!
+    `;
+    setTimeout(() => {
+      btnCopyPassword.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar
+      `;
+    }, 2000);
+  });
+});
+
+// ---- INICIALIZAÇÃO ----
+checkSession();
+</script>
+</body>
+</html>
