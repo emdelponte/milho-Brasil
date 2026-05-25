@@ -7,6 +7,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet Marker Cluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -482,6 +486,13 @@ let todosRegistros = [];
 let marcadores = [];
 let itemAtivo = null;
 
+// ---- CLUSTER DE MARCADORES ----
+const markersCluster = L.markerClusterGroup({
+  showCoverageOnHover: false,
+  maxClusterRadius: 40 // Distância máxima (em pixels) para agrupar pontos próximos
+});
+map.addLayer(markersCluster);
+
 // ---- GRAFICOS ECHARTS ----
 let chartEstados = null;
 let chartTempo = null;
@@ -519,7 +530,7 @@ function atualizarGraficos(registros) {
     }]
   });
 
-  // 2. Gráfico no Tempo
+  // 2. Gráfico no Tempo (Acumulado)
   const contagemDatas = {};
   registros.forEach(r => {
     if (!r.data_registro) return;
@@ -527,25 +538,42 @@ function atualizarGraficos(registros) {
     contagemDatas[data] = (contagemDatas[data] || 0) + 1;
   });
   const datasOrdenadas = Object.keys(contagemDatas).sort();
+  
+  let acumulado = 0;
+  const valoresAcumulados = datasOrdenadas.map(d => {
+    acumulado += contagemDatas[d];
+    return acumulado;
+  });
+
   chartTempo.setOption({
     tooltip: { trigger: 'axis' },
     grid: { left: '3%', right: '4%', bottom: '3%', top: '5%', containLabel: true },
     xAxis: { type: 'category', boundaryGap: false, data: datasOrdenadas.map(d => d.split('-').slice(1).reverse().join('/')) },
     yAxis: { type: 'value', minInterval: 1 },
     series: [{
-      name: 'Registros', type: 'line', smooth: true, data: datasOrdenadas.map(d => contagemDatas[d]),
+      name: 'Registros Acumulados', type: 'line', smooth: true, data: valoresAcumulados,
       areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(56, 142, 60, 0.5)'}, {offset: 1, color: 'rgba(56, 142, 60, 0.05)'}]) },
       itemStyle: { color: '#2e7d32' }
     }]
   });
 
-  // 3. Gráfico por Estádio
+  // 3. Gráfico por Estádio (Ordenação Biológica: V -> VT -> R -> Não inf.)
   const contagemEstadios = {};
   registros.forEach(r => {
     const est = r.estadio || 'Não inf.';
     contagemEstadios[est] = (contagemEstadios[est] || 0) + 1;
   });
-  const estadiosOrdenados = Object.entries(contagemEstadios).sort((a, b) => a[0].localeCompare(b[0]));
+  
+  const ordemEstadios = ['V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'VT', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'Não inf.'];
+  const estadiosOrdenados = Object.entries(contagemEstadios).sort((a, b) => {
+    let idxA = ordemEstadios.indexOf(a[0]);
+    let idxB = ordemEstadios.indexOf(b[0]);
+    if (idxA === -1) idxA = 999;
+    if (idxB === -1) idxB = 999;
+    if (idxA !== idxB) return idxA - idxB;
+    return a[0].localeCompare(b[0]);
+  });
+
   chartEstadio.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', top: '5%', containLabel: true },
@@ -577,8 +605,8 @@ async function carregarDados() {
 }
 
 function renderizar(registros) {
-  // Limpa marcadores
-  marcadores.forEach(m => map.removeLayer(m));
+  // Limpa marcadores do cluster
+  markersCluster.clearLayers();
   marcadores = [];
 
   const lista = document.getElementById('lista');
@@ -630,7 +658,7 @@ function renderizar(registros) {
         ${r.foto_url ? `<img src="${r.foto_url}" class="popup-foto" alt="Foto">` : ''}
       `;
       marcador.bindPopup(popupHtml, { maxWidth: 240 });
-      marcador.addTo(map);
+      markersCluster.addLayer(marcador);
       marcadores.push(marcador);
 
       marcador.on('click', () => {
@@ -641,8 +669,9 @@ function renderizar(registros) {
     item.addEventListener('click', () => {
       ativarItem(item, i);
       if (marcador) {
-        map.setView([r.latitude, r.longitude], 10, { animate: true });
-        marcador.openPopup();
+        markersCluster.zoomToShowLayer(marcador, () => {
+          marcador.openPopup();
+        });
       }
     });
 
