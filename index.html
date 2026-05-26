@@ -746,8 +746,7 @@ function renderizar(registros) {
         ${r.incidencia != null ? `<div class="popup-row">Incidência: ${r.incidencia}%</div>` : ''}
         ${r.severidade != null ? `<div class="popup-row">Severidade: ${r.severidade}%</div>` : ''}
         ${r.sistema_cultivo ? `<div class="popup-row">Sistema: ${r.sistema_cultivo}</div>` : ''}
-        ${r.nome_observador ? `<div class="popup-row">Observador: ${r.nome_observador}</div>` : ''}
-        ${r.instituicao_observador ? `<div class="popup-row" style="font-size: 0.8rem; color: #555; margin-top: -3px; margin-bottom: 2px;">Instituição: ${r.instituicao_observador}</div>` : ''}
+        ${r.nome_observador ? `<div class="popup-row">Observador: ${r.nome_observador}${r.instituicao_observador ? ` (${r.instituicao_observador})` : ''}</div>` : (r.instituicao_observador ? `<div class="popup-row">Instituição: ${r.instituicao_observador}</div>` : '')}
         ${r.observacoes ? `<div class="popup-row" style="margin-top:6px;font-style:italic;color:#666">${r.observacoes}</div>` : ''}
         ${fotosHtml}
       `;
