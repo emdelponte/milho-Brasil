@@ -227,14 +227,51 @@
   .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
   /* ---- FOTO PREVIEW ---- */
-  #foto-preview {
-    display: none;
-    margin-top: 10px;
+  #foto-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+  .foto-thumbnail {
+    position: relative;
+    aspect-ratio: 1;
     border-radius: 8px;
     overflow: hidden;
-    max-height: 180px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    box-shadow: var(--shadow-sm);
   }
-  #foto-preview img { width: 100%; object-fit: cover; max-height: 180px; }
+  .foto-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .foto-remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(230, 57, 70, 0.95);
+    color: white;
+    border: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+    line-height: 1;
+  }
+  .foto-remove-btn:hover {
+    transform: scale(1.15);
+    background: var(--red);
+  }
 
   /* ---- USER INFO BAR ---- */
   #user-bar {
@@ -424,9 +461,15 @@
     <div class="form-card">
       <div class="form-card-header">📋 Identificação</div>
       <div class="form-card-body">
-        <div class="field">
-          <label>Nome do Observador <span class="req">*</span></label>
-          <input type="text" id="nome_observador" placeholder="Seu nome completo">
+        <div class="row-2">
+          <div class="field">
+            <label>Nome do Observador <span class="req">*</span></label>
+            <input type="text" id="nome_observador" placeholder="Seu nome completo">
+          </div>
+          <div class="field">
+            <label>Instituição do Observador</label>
+            <input type="text" id="instituicao_observador" placeholder="Empresa, universidade, etc.">
+          </div>
         </div>
         <div class="row-2">
           <div class="field">
@@ -476,9 +519,15 @@
     <div class="form-card">
       <div class="form-card-header">🌱 Cultura</div>
       <div class="form-card-body">
-        <div class="field">
-          <label>Híbrido</label>
-          <input type="text" id="hibrido" placeholder="Ex: DKB 290 PRO3">
+        <div class="row-2">
+          <div class="field">
+            <label>Híbrido</label>
+            <input type="text" id="hibrido" placeholder="Ex: DKB 290 PRO3">
+          </div>
+          <div class="field">
+            <label>Data de Plantio</label>
+            <input type="date" id="data_plantio">
+          </div>
         </div>
         <div class="row-2">
           <div class="field">
@@ -550,7 +599,7 @@
     <div class="form-card">
       <div class="form-card-header">📎 Complemento</div>
       <div class="form-card-body">
-          <label>Foto (opcional)</label>
+          <label>Fotos (opcional - envie uma ou mais)</label>
           <div style="display: flex; gap: 8px; margin-bottom: 12px;">
             <label for="foto" class="btn-gps" style="flex: 1; text-align: center; margin: 0; background: #f3f4f6; color: #444; border-color: #d1d5db; justify-content: center;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -561,9 +610,9 @@
               Tirar Foto
             </label>
           </div>
-          <input type="file" id="foto" accept="image/*" style="display: none;">
+          <input type="file" id="foto" accept="image/*" multiple style="display: none;">
           <input type="file" id="foto-camera" accept="image/*" capture="environment" style="display: none;">
-          <div id="foto-preview"><img id="foto-img" src="" alt="Preview"></div>
+          <div id="foto-preview-grid"></div>
         <div class="field">
           <label>Observações</label>
           <textarea id="observacoes" placeholder="Informações adicionais sobre a ocorrência..."></textarea>
@@ -703,21 +752,58 @@ btnGps.addEventListener('click', () => {
   );
 });
 
-// ---- PREVIEW FOTO ----
-function handleFotoChange(e) {
-  const file = e.target.files[0];
-  if (file) {
-    if (e.target.id === 'foto') document.getElementById('foto-camera').value = '';
-    else document.getElementById('foto').value = '';
+// ---- CONTROLE DE FOTOS SELECIONADAS ----
+let fotosSelecionadas = []; // Elementos do tipo { id, file, url }
 
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      document.getElementById('foto-img').src = ev.target.result;
-      document.getElementById('foto-preview').style.display = 'block';
-    }
-    reader.readAsDataURL(file);
+function handleFotoChange(e) {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const id = 'local-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const url = URL.createObjectURL(file);
+    fotosSelecionadas.push({ id, file, url });
   }
+
+  // Limpa inputs para permitir selecionar os mesmos arquivos novamente
+  document.getElementById('foto').value = '';
+  document.getElementById('foto-camera').value = '';
+
+  renderFotosPreview();
 }
+
+function renderFotosPreview() {
+  const grid = document.getElementById('foto-preview-grid');
+  grid.innerHTML = '';
+
+  fotosSelecionadas.forEach(foto => {
+    const thumb = document.createElement('div');
+    thumb.className = 'foto-thumbnail';
+
+    const img = document.createElement('img');
+    img.src = foto.url;
+    img.alt = 'Thumbnail';
+    thumb.appendChild(img);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'foto-remove-btn';
+    removeBtn.type = 'button';
+    removeBtn.innerHTML = '✕';
+    removeBtn.title = 'Remover Foto';
+    removeBtn.addEventListener('click', () => {
+      if (foto.id.startsWith('local-')) {
+        URL.revokeObjectURL(foto.url);
+      }
+      fotosSelecionadas = fotosSelecionadas.filter(f => f.id !== foto.id);
+      renderFotosPreview();
+    });
+    thumb.appendChild(removeBtn);
+
+    grid.appendChild(thumb);
+  });
+}
+
 document.getElementById('foto').addEventListener('change', handleFotoChange);
 document.getElementById('foto-camera').addEventListener('change', handleFotoChange);
 
@@ -728,12 +814,14 @@ function entrarModoEdicao(registro) {
   editandoId = registro.id;
   // Preencher campos
   document.getElementById('nome_observador').value  = registro.nome_observador || '';
+  document.getElementById('instituicao_observador').value = registro.instituicao_observador || '';
   document.getElementById('data_registro').value    = registro.data_registro   || '';
   document.getElementById('safra').value            = registro.safra           || '';
   document.getElementById('doenca').value           = registro.doenca          || '';
   document.getElementById('incidencia').value       = registro.incidencia      ?? '';
   document.getElementById('severidade').value       = registro.severidade      ?? '';
   document.getElementById('hibrido').value          = registro.hibrido         || '';
+  document.getElementById('data_plantio').value     = registro.data_plantio    || '';
   document.getElementById('estadio').value          = registro.estadio         || '';
   document.getElementById('sistema_cultivo').value  = registro.sistema_cultivo || '';
   document.getElementById('municipio').value        = registro.municipio       || '';
@@ -747,6 +835,22 @@ function entrarModoEdicao(registro) {
     gs.textContent = `✓ Lat: ${registro.latitude} | Lon: ${registro.longitude}`;
     gs.className = 'ok';
   }
+  // Preencher Fotos pré-existentes
+  fotosSelecionadas = [];
+  if (registro.foto_url) {
+    const urls = registro.foto_url.split(',');
+    urls.forEach((url, i) => {
+      if (url.trim()) {
+        fotosSelecionadas.push({
+          id: 'url-' + i + '-' + Math.random().toString(36).substr(2, 9),
+          file: null,
+          url: url.trim()
+        });
+      }
+    });
+  }
+  renderFotosPreview();
+
   // Banner
   document.getElementById('edit-banner').classList.add('visible');
   document.getElementById('btn-enviar').textContent = 'Salvar Alterações';
@@ -761,12 +865,16 @@ function sairModoEdicao() {
 }
 
 function limparFormulario() {
-  ['nome_observador','incidencia','severidade','hibrido','municipio',
+  ['nome_observador','instituicao_observador','incidencia','severidade','hibrido','data_plantio','municipio',
    'latitude','longitude','observacoes'].forEach(id => document.getElementById(id).value = '');
   ['doenca','estadio','sistema_cultivo'].forEach(id => document.getElementById(id).selectedIndex = 0);
   document.getElementById('foto').value = '';
   document.getElementById('foto-camera').value = '';
-  document.getElementById('foto-preview').style.display = 'none';
+  fotosSelecionadas.forEach(f => {
+    if (f.id.startsWith('local-')) URL.revokeObjectURL(f.url);
+  });
+  fotosSelecionadas = [];
+  renderFotosPreview();
   document.getElementById('gps-status').className = '';
   document.getElementById('data_registro').value = new Date().toISOString().split('T')[0];
   document.getElementById('safra').value = 'Safrinha 2026';
@@ -833,8 +941,9 @@ btnEnviar.addEventListener('click', async () => {
   if (!session) { showAlert('Sessão expirada. Faça login novamente.'); showLogin(); return; }
 
   // Validação
-  const nome      = document.getElementById('nome_observador').value.trim();
-  const doenca    = document.getElementById('doenca').value;
+  const nome        = document.getElementById('nome_observador').value.trim();
+  const instituicao = document.getElementById('instituicao_observador').value.trim();
+  const doenca      = document.getElementById('doenca').value;
   const municipio = document.getElementById('municipio').value.trim();
   const estado    = document.getElementById('estado').value;
   const safra     = document.getElementById('safra').value;
@@ -850,17 +959,35 @@ btnEnviar.addEventListener('click', async () => {
   btnEnviar.innerHTML = '<span class="spinner"></span>' + (editandoId ? 'Salvando...' : 'Enviando...');
 
   // Upload foto (só se nova foto selecionada)
-  let foto_url = null;
-  const fotoFile = document.getElementById('foto').files[0] || document.getElementById('foto-camera').files[0];
-  if (fotoFile) {
-    const ext  = fotoFile.name.split('.').pop();
-    const path = `${session.user.id}/${Date.now()}.${ext}`;
-    const { error: uploadErr } = await sb.storage.from('fotos-ocorrencias').upload(path, fotoFile);
-    if (!uploadErr) {
+  // Upload das fotos novas (em paralelo)
+  const urlsFinais = [];
+  try {
+    const uploadPromises = fotosSelecionadas.map(async (foto) => {
+      // Se for URL já existente, mantém
+      if (!foto.file) {
+        urlsFinais.push(foto.url);
+        return;
+      }
+
+      // Se for arquivo novo, faz upload
+      const ext = foto.file.name.split('.').pop();
+      const path = `${session.user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
+      const { error: uploadErr } = await sb.storage.from('fotos-ocorrencias').upload(path, foto.file);
+      if (uploadErr) throw uploadErr;
+
       const { data: urlData } = sb.storage.from('fotos-ocorrencias').getPublicUrl(path);
-      foto_url = urlData.publicUrl;
-    }
+      urlsFinais.push(urlData.publicUrl);
+    });
+
+    await Promise.all(uploadPromises);
+  } catch (uploadErr) {
+    showAlert('Erro ao fazer upload de uma das fotos: ' + uploadErr.message);
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = editandoId ? 'Salvar Alterações' : 'Enviar Registro';
+    return;
   }
+
+  const foto_url = urlsFinais.filter(u => u).join(',');
 
   const valInc = parseFloat(document.getElementById('incidencia').value);
   const valSev = parseFloat(document.getElementById('severidade').value);
@@ -869,12 +996,14 @@ btnEnviar.addEventListener('click', async () => {
 
   const registro = {
     nome_observador: nome,
+    instituicao_observador: instituicao || null,
     data_registro:   data_reg,
     safra,
     doenca,
     incidencia:      !isNaN(valInc) ? valInc : null,
     severidade:      !isNaN(valSev) ? valSev : null,
     hibrido:         document.getElementById('hibrido').value.trim() || null,
+    data_plantio:    document.getElementById('data_plantio').value || null,
     estadio:         document.getElementById('estadio').value || null,
     sistema_cultivo: document.getElementById('sistema_cultivo').value || null,
     municipio,

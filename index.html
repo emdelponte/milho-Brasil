@@ -195,6 +195,57 @@
   .popup-row strong { color: var(--dark); }
   .popup-foto { width: 100%; border-radius: 6px; margin-top: 8px; max-height: 120px; object-fit: cover; }
 
+  /* GALLERY CAROUSEL IN POPUP */
+  .popup-gallery {
+    position: relative;
+    width: 100%;
+    margin-top: 8px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f1f5f9;
+  }
+  .popup-gallery .popup-foto {
+    margin-top: 0;
+    display: block;
+  }
+  .popup-gallery-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    box-sizing: border-box;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: bold;
+    z-index: 1000;
+  }
+  .gallery-nav-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 2px 8px;
+    line-height: 1;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .gallery-nav-btn:hover {
+    opacity: 0.8;
+  }
+  .gallery-nav-btn:active {
+    transform: scale(0.9);
+  }
+  .gallery-counter {
+    user-select: none;
+    letter-spacing: 0.5px;
+  }
+
   /* VIVID MAP FILTER */
   .leaflet-tile-pane { filter: saturate(1.6) contrast(1.05) hue-rotate(-5deg); }
 
@@ -604,6 +655,24 @@ async function carregarDados() {
   renderizar(todosRegistros);
 }
 
+window.popupPhotos = {};
+window.mudarFoto = function(id, direcao) {
+  const data = window.popupPhotos[id];
+  if (!data) return;
+  
+  data.currentIndex += direcao;
+  if (data.currentIndex < 0) {
+    data.currentIndex = data.urls.length - 1;
+  } else if (data.currentIndex >= data.urls.length) {
+    data.currentIndex = 0;
+  }
+  
+  const imgEl = document.getElementById(`popup-img-${id}`);
+  const counterEl = document.getElementById(`popup-counter-${id}`);
+  if (imgEl) imgEl.src = data.urls[data.currentIndex];
+  if (counterEl) counterEl.textContent = `${data.currentIndex + 1}/${data.urls.length}`;
+};
+
 function renderizar(registros) {
   // Limpa marcadores do cluster
   markersCluster.clearLayers();
@@ -644,18 +713,43 @@ function renderizar(registros) {
       marcador = L.marker([r.latitude, r.longitude], { icon: criarIcone(r.doenca) });
 
       const dataFmt = r.data_registro ? new Date(r.data_registro+'T00:00:00').toLocaleDateString('pt-BR') : '—';
+      const dataPlantioFmt = r.data_plantio ? new Date(r.data_plantio+'T00:00:00').toLocaleDateString('pt-BR') : '';
+      
+      let fotosHtml = '';
+      if (r.foto_url) {
+        const urls = r.foto_url.split(',').map(u => u.trim()).filter(Boolean);
+        if (urls.length > 0) {
+          window.popupPhotos[r.id] = { urls: urls, currentIndex: 0 };
+          if (urls.length === 1) {
+            fotosHtml = `<img src="${urls[0]}" class="popup-foto" alt="Foto">`;
+          } else {
+            fotosHtml = `
+              <div class="popup-gallery">
+                <img src="${urls[0]}" id="popup-img-${r.id}" class="popup-foto" alt="Foto">
+                <div class="popup-gallery-nav">
+                  <button type="button" class="gallery-nav-btn" onclick="event.stopPropagation(); mudarFoto('${r.id}', -1)">◀</button>
+                  <span class="gallery-counter" id="popup-counter-${r.id}">1/${urls.length}</span>
+                  <button type="button" class="gallery-nav-btn" onclick="event.stopPropagation(); mudarFoto('${r.id}', 1)">▶</button>
+                </div>
+              </div>
+            `;
+          }
+        }
+      }
+
       let popupHtml = `
         <div class="popup-doenca">${r.doenca || '—'}</div>
         <div class="popup-row">${r.municipio || '—'} — ${r.estado || ''}</div>
         <div class="popup-row">${dataFmt} &nbsp;|&nbsp; ${r.safra || '—'}</div>
-        ${r.hibrido ? `<div class="popup-row">Híbrido: ${r.hibrido}</div>` : ''}
+        ${r.hibrido ? `<div class="popup-row">Híbrido: ${r.hibrido} ${dataPlantioFmt ? `(Plantio: ${dataPlantioFmt})` : ''}</div>` : (dataPlantioFmt ? `<div class="popup-row">Plantio: ${dataPlantioFmt}</div>` : '')}
         ${r.estadio ? `<div class="popup-row">Estádio: ${r.estadio}</div>` : ''}
         ${r.incidencia != null ? `<div class="popup-row">Incidência: ${r.incidencia}%</div>` : ''}
         ${r.severidade != null ? `<div class="popup-row">Severidade: ${r.severidade}%</div>` : ''}
         ${r.sistema_cultivo ? `<div class="popup-row">Sistema: ${r.sistema_cultivo}</div>` : ''}
         ${r.nome_observador ? `<div class="popup-row">Observador: ${r.nome_observador}</div>` : ''}
+        ${r.instituicao_observador ? `<div class="popup-row" style="font-size: 0.8rem; color: #555; margin-top: -3px; margin-bottom: 2px;">Instituição: ${r.instituicao_observador}</div>` : ''}
         ${r.observacoes ? `<div class="popup-row" style="margin-top:6px;font-style:italic;color:#666">${r.observacoes}</div>` : ''}
-        ${r.foto_url ? `<img src="${r.foto_url}" class="popup-foto" alt="Foto">` : ''}
+        ${fotosHtml}
       `;
       marcador.bindPopup(popupHtml, { maxWidth: 240 });
       markersCluster.addLayer(marcador);
