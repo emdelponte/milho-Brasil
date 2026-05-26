@@ -658,10 +658,14 @@ function showAlert(msg, type = 'error') {
   document.querySelectorAll('#alert').forEach(el => {
     el.textContent = msg;
     el.className = type;
+    el.style.display = 'block'; // Garante exibição caso estivesse oculto por display: none
   });
 }
 function hideAlert() {
-  document.querySelectorAll('#alert').forEach(el => { el.className = ''; el.style.display = 'none'; });
+  document.querySelectorAll('#alert').forEach(el => { 
+    el.className = ''; 
+    el.style.display = 'none'; 
+  });
 }
 
 // ---- DATA PADRÃO ----
