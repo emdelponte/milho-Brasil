@@ -739,14 +739,16 @@ function renderizar(registros) {
 
       let popupHtml = `
         <div class="popup-doenca">${r.doenca || '—'}</div>
-        <div class="popup-row">${r.municipio || '—'} — ${r.estado || ''}</div>
-        <div class="popup-row">${dataFmt} &nbsp;|&nbsp; ${r.safra || '—'}</div>
-        ${r.hibrido ? `<div class="popup-row">Híbrido: ${r.hibrido} ${dataPlantioFmt ? `(Plantio: ${dataPlantioFmt})` : ''}</div>` : (dataPlantioFmt ? `<div class="popup-row">Plantio: ${dataPlantioFmt}</div>` : '')}
-        ${r.estadio ? `<div class="popup-row">Estádio: ${r.estadio}</div>` : ''}
-        ${r.incidencia != null ? `<div class="popup-row">Incidência: ${r.incidencia}%</div>` : ''}
-        ${r.severidade != null ? `<div class="popup-row">Severidade: ${r.severidade}%</div>` : ''}
-        ${r.sistema_cultivo ? `<div class="popup-row">Sistema: ${r.sistema_cultivo}</div>` : ''}
-        ${r.nome_observador ? `<div class="popup-row">Observador: ${r.nome_observador}${r.instituicao_observador ? ` (${r.instituicao_observador})` : ''}</div>` : (r.instituicao_observador ? `<div class="popup-row">Instituição: ${r.instituicao_observador}</div>` : '')}
+        <div class="popup-row"><strong>Município:</strong> ${r.municipio || '—'} — ${r.estado || ''}</div>
+        <div class="popup-row"><strong>Safra:</strong> ${r.safra || '—'}</div>
+        <div class="popup-row"><strong>Data da ocorrência:</strong> ${dataFmt}</div>
+        ${dataPlantioFmt ? `<div class="popup-row"><strong>Data de plantio:</strong> ${dataPlantioFmt}</div>` : ''}
+        ${r.hibrido ? `<div class="popup-row"><strong>Híbrido:</strong> ${r.hibrido}</div>` : ''}
+        ${r.estadio ? `<div class="popup-row"><strong>Estádio:</strong> ${r.estadio}</div>` : ''}
+        ${r.incidencia != null ? `<div class="popup-row"><strong>Incidência:</strong> ${r.incidencia}%</div>` : ''}
+        ${r.severidade != null ? `<div class="popup-row"><strong>Severidade:</strong> ${r.severidade}%</div>` : ''}
+        ${r.sistema_cultivo ? `<div class="popup-row"><strong>Sistema:</strong> ${r.sistema_cultivo}</div>` : ''}
+        ${r.nome_observador ? `<div class="popup-row"><strong>Observador:</strong> ${r.nome_observador}${r.instituicao_observador ? ` (${r.instituicao_observador})` : ''}</div>` : (r.instituicao_observador ? `<div class="popup-row"><strong>Instituição:</strong> ${r.instituicao_observador}</div>` : '')}
         ${r.observacoes ? `<div class="popup-row" style="margin-top:6px;font-style:italic;color:#666">${r.observacoes}</div>` : ''}
         ${fotosHtml}
       `;
