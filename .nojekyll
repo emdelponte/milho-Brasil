@@ -1,0 +1,1 @@
+# Bypass Jekyll processing for GitHub Pages to prevent build failures on Deno/TypeScript files inside /supabase
