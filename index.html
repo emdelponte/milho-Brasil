@@ -404,9 +404,9 @@
     <div id="floating-filters-panel">
       <select class="filter-select" id="filtro-doenca">
         <option value="">Todas as manchas</option>
-        <option value="Mancha branca (Phaeosphaeria maydis)">Mancha branca</option>
-        <option value="Mancha de Bipolaris (Bipolaris maydis)">Mancha de Bipolaris</option>
-        <option value="Mancha de turcicum (Exserohilum turcicum)">Mancha de turcicum</option>
+        <option value="Mancha branca">Mancha branca (Phaeosphaeria maydis)</option>
+        <option value="Mancha de Bipolaris">Mancha de Bipolaris (Bipolaris maydis)</option>
+        <option value="Mancha de Turcicum">Mancha de turcicum (Exserohilum turcicum)</option>
       </select>
       <select class="filter-select" id="filtro-safra">
         <option value="">Todas as safras</option>
@@ -500,13 +500,20 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 
 // ---- CORES POR DOENÇA ----
 const cores = {
-  'Mancha branca (Phaeosphaeria maydis)':      '#f4a261',
-  'Mancha de Bipolaris (Bipolaris maydis)':    '#8338ec',
-  'Mancha de turcicum (Exserohilum turcicum)':  '#e63946'
+  'Mancha branca':      '#f4a261',
+  'Mancha de Bipolaris':    '#8338ec',
+  'Mancha de Turcicum':  '#e63946'
 };
 const corPadrao = '#52b788';
 
-function getCor(doenca) { return cores[doenca] || corPadrao; }
+function getCor(doenca) {
+  if (!doenca) return corPadrao;
+  const d = doenca.toLowerCase();
+  if (d.includes('branca')) return cores['Mancha branca'];
+  if (d.includes('bipolaris')) return cores['Mancha de Bipolaris'];
+  if (d.includes('turcicum')) return cores['Mancha de Turcicum'];
+  return corPadrao;
+}
 
 function criarIcone(doenca) {
   const cor = getCor(doenca);
@@ -525,7 +532,8 @@ legenda.onAdd = () => {
   const div = L.DomUtil.create('div', 'leaflet-legend');
   div.innerHTML = '<h4>Doenças</h4>' +
     Object.entries(cores).map(([nome, cor]) => {
-      const label = nome.split('(')[0].trim();
+      let label = nome;
+      if (label === 'Mancha de Turcicum') label = 'Mancha de turcicum';
       return `<div class="legend-item"><div class="legend-dot" style="background:${cor}"></div><span>${label}</span></div>`;
     }).join('');
   return div;
@@ -790,7 +798,12 @@ function aplicarFiltros() {
   const safra  = document.getElementById('filtro-safra').value;
 
   const filtrados = todosRegistros.filter(r => {
-    if (doenca && r.doenca !== doenca) return false;
+    if (doenca) {
+      if (!r.doenca) return false;
+      const rDoencaNorm = r.doenca.toLowerCase();
+      const filtroDoencaNorm = doenca.toLowerCase();
+      if (rDoencaNorm !== filtroDoencaNorm && !rDoencaNorm.includes(filtroDoencaNorm) && !filtroDoencaNorm.includes(rDoencaNorm)) return false;
+    }
     if (safra  && r.safra  !== safra)  return false;
     return true;
   });
