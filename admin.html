@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SpotMilho - Painel Administrativo</title>
+<title>SpotMaize - Painel Administrativo</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -58,7 +58,12 @@
     display: flex;
     flex-direction: column;
   }
-  header .brand span {
+  header .brand .brand-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  header .brand .brand-subtitle {
     font-size: 0.72rem;
     font-weight: 500;
     opacity: 0.85;
@@ -67,6 +72,7 @@
     text-transform: uppercase;
     color: var(--gold);
     margin-top: 2px;
+    margin-left: 34px;
   }
   .header-actions { display: flex; gap: 8px; align-items: center; }
   .btn-header {
@@ -492,8 +498,11 @@
 
 <header>
   <div class="brand">
-    🌽 SpotMilho
-    <span>Painel Admin</span>
+    <div class="brand-title">
+      <img src="spotmaize_logo.png" alt="SpotMaize Logo" style="height: 26px; width: 26px; border-radius: 6px; background: white; padding: 2px; object-fit: contain;">
+      SpotMaize
+    </div>
+    <span class="brand-subtitle">Painel Admin</span>
   </div>
   <div class="header-actions">
     <a href="https://emdelponte.github.io/milho-Brasil/" class="btn-header">Mapa</a>
@@ -509,7 +518,7 @@
     <div class="admin-card">
       <div class="login-header">
         <h2>Acesso Administrativo</h2>
-        <p>Apenas administradores autorizados do sistema SpotMilho podem gerenciar usuários.</p>
+        <p>Apenas administradores autorizados do sistema SpotMaize podem gerenciar usuários.</p>
       </div>
 
       <div id="login-alert" class="alert-box"></div>

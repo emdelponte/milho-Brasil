@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SpotMilho - Registro de Ocorrências</title>
+<title>SpotMaize - Registro de Ocorrências</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -46,6 +46,9 @@
     font-size: 1.1rem;
     letter-spacing: 0.5px;
     line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   header .brand span {
     display: block;
@@ -424,7 +427,8 @@
 
 <header>
   <div class="brand">
-    🌽 SpotMilho
+    <img src="spotmaize_logo.png" alt="SpotMaize Logo" style="height: 26px; width: 26px; border-radius: 6px; background: white; padding: 2px; object-fit: contain;">
+    SpotMaize
   </div>
   <div class="header-actions">
     <a href="https://emdelponte.github.io/milho-Brasil/" class="btn-header">Dashboard</a>
@@ -556,22 +560,22 @@
     <div class="form-card">
       <div class="form-card-header">📍 Localização</div>
       <div class="form-card-body">
+        <div class="field">
+          <label>País <span class="req">*</span></label>
+          <select id="pais" required>
+            <option value="Brasil">Brasil</option>
+            <option value="Argentina">Argentina</option>
+          </select>
+        </div>
         <div class="row-2">
           <div class="field">
             <label>Município <span class="req">*</span></label>
             <input type="text" id="municipio" placeholder="Nome do município">
           </div>
           <div class="field">
-            <label>Estado (UF) <span class="req">*</span></label>
+            <label id="label-estado">Estado (UF) <span class="req">*</span></label>
             <select id="estado">
-              <option value="">UF...</option>
-              <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
-              <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
-              <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
-              <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
-              <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
-              <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
-              <option>SP</option><option>SE</option><option>TO</option>
+              <!-- Populados via JS -->
             </select>
           </div>
         </div>
@@ -828,8 +832,9 @@ function entrarModoEdicao(registro) {
   document.getElementById('data_plantio').value     = registro.data_plantio    || '';
   document.getElementById('estadio').value          = registro.estadio         || '';
   document.getElementById('sistema_cultivo').value  = registro.sistema_cultivo || '';
+  document.getElementById('pais').value             = registro.pais            || 'Brasil';
+  atualizarSelectEstados(registro.estado);
   document.getElementById('municipio').value        = registro.municipio       || '';
-  document.getElementById('estado').value           = registro.estado          || '';
   document.getElementById('latitude').value         = registro.latitude        ?? '';
   document.getElementById('longitude').value        = registro.longitude       ?? '';
   document.getElementById('observacoes').value      = registro.observacoes     || '';
@@ -872,6 +877,8 @@ function limparFormulario() {
   ['nome_observador','instituicao_observador','incidencia','severidade','hibrido','data_plantio','municipio',
    'latitude','longitude','observacoes'].forEach(id => document.getElementById(id).value = '');
   ['doenca','estadio','sistema_cultivo'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  document.getElementById('pais').value = 'Brasil';
+  atualizarSelectEstados();
   document.getElementById('foto').value = '';
   document.getElementById('foto-camera').value = '';
   fotosSelecionadas.forEach(f => {
@@ -885,6 +892,70 @@ function limparFormulario() {
 }
 
 document.getElementById('btn-cancelar-edicao').addEventListener('click', sairModoEdicao);
+
+const estadosPorPais = {
+  'Brasil': [
+    { val: 'AC', text: 'AC' }, { val: 'AL', text: 'AL' }, { val: 'AP', text: 'AP' }, { val: 'AM', text: 'AM' },
+    { val: 'BA', text: 'BA' }, { val: 'CE', text: 'CE' }, { val: 'DF', text: 'DF' }, { val: 'ES', text: 'ES' },
+    { val: 'GO', text: 'GO' }, { val: 'MA', text: 'MA' }, { val: 'MT', text: 'MT' }, { val: 'MS', text: 'MS' },
+    { val: 'MG', text: 'MG' }, { val: 'PA', text: 'PA' }, { val: 'PB', text: 'PB' }, { val: 'PR', text: 'PR' },
+    { val: 'PE', text: 'PE' }, { val: 'PI', text: 'PI' }, { val: 'RJ', text: 'RJ' }, { val: 'RN', text: 'RN' },
+    { val: 'RS', text: 'RS' }, { val: 'RO', text: 'RO' }, { val: 'RR', text: 'RR' }, { val: 'SC', text: 'SC' },
+    { val: 'SP', text: 'SP' }, { val: 'SE', text: 'SE' }, { val: 'TO', text: 'TO' }
+  ],
+  'Argentina': [
+    { val: 'Buenos Aires', text: 'Buenos Aires' },
+    { val: 'Catamarca', text: 'Catamarca' },
+    { val: 'Chaco', text: 'Chaco' },
+    { val: 'Chubut', text: 'Chubut' },
+    { val: 'Córdoba', text: 'Córdoba' },
+    { val: 'Corrientes', text: 'Corrientes' },
+    { val: 'Entre Ríos', text: 'Entre Ríos' },
+    { val: 'Formosa', text: 'Formosa' },
+    { val: 'Jujuy', text: 'Jujuy' },
+    { val: 'La Pampa', text: 'La Pampa' },
+    { val: 'La Rioja', text: 'La Rioja' },
+    { val: 'Mendoza', text: 'Mendoza' },
+    { val: 'Misiones', text: 'Misiones' },
+    { val: 'Neuquén', text: 'Neuquén' },
+    { val: 'Río Negro', text: 'Río Negro' },
+    { val: 'Salta', text: 'Salta' },
+    { val: 'San Juan', text: 'San Juan' },
+    { val: 'San Luis', text: 'San Luis' },
+    { val: 'Santa Cruz', text: 'Santa Cruz' },
+    { val: 'Santa Fe', text: 'Santa Fe' },
+    { val: 'Santiago del Estero', text: 'Santiago del Estero' },
+    { val: 'Tierra del Fuego', text: 'Tierra del Fuego' },
+    { val: 'Tucumán', text: 'Tucumán' }
+  ]
+};
+
+function atualizarSelectEstados(valorSelecionado = '') {
+  const pais = document.getElementById('pais').value;
+  const estadoSelect = document.getElementById('estado');
+  const labelEstado = document.getElementById('label-estado');
+  
+  if (labelEstado) {
+    labelEstado.innerHTML = pais === 'Brasil' 
+      ? 'Estado (UF) <span class="req">*</span>' 
+      : 'Província <span class="req">*</span>';
+  }
+
+  const options = estadosPorPais[pais] || [];
+  estadoSelect.innerHTML = '<option value="">Selecione...</option>';
+  options.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt.val;
+    o.textContent = opt.text;
+    if (opt.val === valorSelecionado) {
+      o.selected = true;
+    }
+    estadoSelect.appendChild(o);
+  });
+}
+
+document.getElementById('pais').addEventListener('change', () => atualizarSelectEstados());
+atualizarSelectEstados();
 
 // ---- MEUS REGISTROS ----
 async function carregarMeusRegistros(userId) {
@@ -915,7 +986,7 @@ async function carregarMeusRegistros(userId) {
     div.innerHTML = `
       <div class="meu-registro-info">
         <div class="meu-reg-doenca">${doencaLabel}</div>
-        <div class="meu-reg-local">${r.municipio || '—'} — ${r.estado || ''}</div>
+        <div class="meu-reg-local">${r.municipio || '—'} — ${r.estado || ''}${r.pais ? ` (${r.pais})` : ''}</div>
         <div class="meu-reg-data">${dataFmt} &nbsp;|&nbsp; ${r.safra || '—'}</div>
         ${r.observacoes ? `<div class="oc-obs">${r.observacoes}</div>` : ''}
       </div>
@@ -1004,6 +1075,7 @@ btnEnviar.addEventListener('click', async () => {
     data_registro:   data_reg,
     safra,
     doenca,
+    pais:            document.getElementById('pais').value,
     incidencia:      !isNaN(valInc) ? valInc : null,
     severidade:      !isNaN(valSev) ? valSev : null,
     hibrido:         document.getElementById('hibrido').value.trim() || null,

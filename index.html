@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SpotMilho - Mapa de Doenças</title>
+<title>SpotMaize - Mapa de Doenças</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -40,7 +40,7 @@
     box-shadow: 0 2px 12px rgba(0,0,0,0.15);
     z-index: 1000;
   }
-  .brand { font-family: 'Inter', sans-serif; font-weight: 800; font-size: 0.95rem; line-height: 1.2; }
+  .brand { font-family: 'Inter', sans-serif; font-weight: 800; font-size: 0.95rem; line-height: 1.2; display: flex; align-items: center; gap: 8px; }
   .header-right { display: flex; align-items: center; gap: 8px; }
   #total-badge {
     background: rgba(255,255,255,0.2);
@@ -373,15 +373,16 @@
 <!-- SPLASH SCREEN -->
 <div id="splash-screen">
   <div class="splash-content">
-    <h1>SpotMilho</h1>
-    <p>Mapa interativo de doenças foliares do milho no Brasil.</p>
+    <h1>SpotMaize</h1>
+    <p>Mapa interativo de doenças foliares do milho.</p>
     <button id="btn-entrar-app">Acessar o Mapa</button>
   </div>
 </div>
 
 <header>
   <div class="brand">
-    🌽 SpotMilho
+    <img src="spotmaize_logo.png" alt="SpotMaize Logo" style="height: 24px; width: 24px; border-radius: 6px; background: white; padding: 2px; object-fit: contain;">
+    SpotMaize
   </div>
   <div class="header-right">
     <a href="#" id="btn-sobre-header" style="margin-right: 15px; color: white; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
@@ -402,6 +403,11 @@
       Filtros
     </button>
     <div id="floating-filters-panel">
+      <select class="filter-select" id="filtro-pais">
+        <option value="">Todos os países</option>
+        <option value="Brasil">Brasil</option>
+        <option value="Argentina">Argentina</option>
+      </select>
       <select class="filter-select" id="filtro-doenca">
         <option value="">Todas as manchas</option>
         <option value="Mancha branca">Mancha branca (Phaeosphaeria maydis)</option>
@@ -434,7 +440,7 @@
     <div id="charts-view">
       <div class="chart-tabs">
         <button class="chart-tab active" data-chart="estadio">POR ESTÁDIO</button>
-        <button class="chart-tab" data-chart="estado">POR ESTADO</button>
+        <button class="chart-tab" data-chart="estado">POR ESTADO / PROVÍNCIA</button>
         <button class="chart-tab" data-chart="tempo">ACUMULADO POR DATA</button>
       </div>
       
@@ -571,10 +577,16 @@ function initGraficos() {
 function atualizarGraficos(registros) {
   if (!chartEstados || !chartTempo || !chartEstadio) return;
 
-  // 1. Gráfico por Estado
+  // 1. Gráfico por Estado/Província
   const contagemEstados = {};
+  const filtroPais = document.getElementById('filtro-pais').value;
   registros.forEach(r => {
-    const uf = r.estado || 'Não inf.';
+    let uf = r.estado || 'Não inf.';
+    const rPais = r.pais || 'Brasil';
+    // Se nenhum país específico estiver selecionado no filtro, exibe com sufixo (ex: SP (BR) ou Córdoba (AR))
+    if (!filtroPais && r.estado && r.estado !== 'Não inf.') {
+      uf = `${r.estado} (${rPais === 'Brasil' ? 'BR' : 'AR'})`;
+    }
     contagemEstados[uf] = (contagemEstados[uf] || 0) + 1;
   });
   const estadosOrdenados = Object.entries(contagemEstados).sort((a, b) => a[1] - b[1]);
@@ -703,9 +715,10 @@ function renderizar(registros) {
     const item = document.createElement('div');
     item.className = 'ocorrencia-item';
     const doencaLabel = r.doenca ? r.doenca.split('(')[0].trim() : 'Doença não informada';
+    const paisFmt = r.pais || 'Brasil';
     item.innerHTML = `
       <div class="oc-doenca" style="color:${getCor(r.doenca)}">${doencaLabel}</div>
-      <div class="oc-local">${r.municipio || '—'} — ${r.estado || ''}</div>
+      <div class="oc-local">${r.municipio || '—'} — ${r.estado || ''} (${paisFmt})</div>
       <div class="oc-meta">
         ${r.incidencia != null ? `<span class="tag tag-inc">Inc: ${r.incidencia}%</span>` : ''}
         ${r.severidade != null ? `<span class="tag tag-sev">Sev: ${r.severidade}%</span>` : ''}
@@ -745,9 +758,10 @@ function renderizar(registros) {
         }
       }
 
+      const paisFmt = r.pais || 'Brasil';
       let popupHtml = `
         <div class="popup-doenca">${r.doenca || '—'}</div>
-        <div class="popup-row"><strong>Município:</strong> ${r.municipio || '—'} — ${r.estado || ''}</div>
+        <div class="popup-row"><strong>Município:</strong> ${r.municipio || '—'} — ${r.estado || ''} (${paisFmt})</div>
         <div class="popup-row"><strong>Safra:</strong> ${r.safra || '—'}</div>
         <div class="popup-row"><strong>Data da ocorrência:</strong> ${dataFmt}</div>
         ${dataPlantioFmt ? `<div class="popup-row"><strong>Data de plantio:</strong> ${dataPlantioFmt}</div>` : ''}
@@ -796,6 +810,7 @@ function ativarItem(item, i) {
 function aplicarFiltros() {
   const doenca = document.getElementById('filtro-doenca').value;
   const safra  = document.getElementById('filtro-safra').value;
+  const pais   = document.getElementById('filtro-pais').value;
 
   const filtrados = todosRegistros.filter(r => {
     if (doenca) {
@@ -804,19 +819,22 @@ function aplicarFiltros() {
       const filtroDoencaNorm = doenca.toLowerCase();
       if (rDoencaNorm !== filtroDoencaNorm && !rDoencaNorm.includes(filtroDoencaNorm) && !filtroDoencaNorm.includes(rDoencaNorm)) return false;
     }
-    if (safra  && r.safra  !== safra)  return false;
+    if (safra && r.safra !== safra) return false;
+    const rPais = r.pais || 'Brasil';
+    if (pais && rPais.toLowerCase() !== pais.toLowerCase()) return false;
     return true;
   });
   renderizar(filtrados);
 }
 
-['filtro-doenca','filtro-safra'].forEach(id => {
+['filtro-doenca','filtro-safra','filtro-pais'].forEach(id => {
   document.getElementById(id).addEventListener('change', aplicarFiltros);
 });
 
 document.getElementById('btn-clear').addEventListener('click', () => {
   document.getElementById('filtro-doenca').value = '';
   document.getElementById('filtro-safra').value  = '';
+  document.getElementById('filtro-pais').value   = '';
   renderizar(todosRegistros);
 });
 
